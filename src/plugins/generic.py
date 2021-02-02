@@ -1,4 +1,4 @@
-OneWayThreadimport socket
+OneWayThread import socket
 import threading
 
 from hpotter import tables
