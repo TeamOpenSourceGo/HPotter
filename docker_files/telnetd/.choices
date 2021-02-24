@@ -1,2 +1,11 @@
-docker build -t debian:telnetd .
+docker stop $(docker ps -a -q)
+
+docker rm $(docker ps -a -q)
+
+docker system prune -a
+
+docker rmi $(docker images -a -q)
+---
+docker build --no-cache -t debian:telnetd .
+
 docker run -p 23:23 debian:telnetd
