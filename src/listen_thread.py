@@ -14,6 +14,7 @@ from geolite2 import geolite2
 from src.logger import logger
 from src import tables
 from src.container_thread import ContainerThread
+from src import chain
 
 class ListenThread(threading.Thread):
     ''' Set up the port, listen to it, create a container thread. '''
@@ -21,6 +22,8 @@ class ListenThread(threading.Thread):
         super().__init__()
         self.container = container
         self.database = database
+        self.to_rule = None
+        self.from_rule = None
 
         if 'request_save' not in self.container:
             self.container['request_save'] = True
@@ -124,6 +127,7 @@ class ListenThread(threading.Thread):
             self._gen_cert()
 
         listen_socket = self._create_listen_socket()
+        chain.create_listen_rules(self)
         listen_socket.listen()
 
         num_threads = self.container.get('threads', None)
@@ -149,6 +153,7 @@ class ListenThread(threading.Thread):
                 future = executor.submit(thread.start)
                 self.container_list.append((future, thread))
 
+        chain.delete_listen_rules(self)
         listen_socket.close()
 
     def shutdown(self):
