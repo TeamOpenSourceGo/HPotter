@@ -1,14 +1,16 @@
 const url = "http://localhost:8080/"
+
 let myMap;
 let iw;
-
+let myMarkers = [];
+let myMarkerClusterer;
 let script = document.createElement('script');
 script.src = "https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE&callback=initMap"
 script.async = true;
 
 function initMap() {
   myMap = new google.maps.Map(document.getElementById('map'),
-    { center: {lat: 0, lng: 0}, zoom: 2});
+    { center: {lat: 0, lng: 0}, zoom: 3});
   iw = new google.maps.InfoWindow();
 
   oms = new OverlappingMarkerSpiderfier(myMap, {
@@ -16,10 +18,33 @@ function initMap() {
     markersWontHide: true,
     basicFormatEvents: true
   });
-  fetchAllLocations();
+  fetchLocations();
+  addCustomControls();
+  addEventListeners();
 }
 
 document.head.appendChild(script);
+
+function addCustomControls() {
+  const dateDiv = document.getElementById("hp-date-picker");
+  myMap.controls[google.maps.ControlPosition.TOP_RIGHT].push(dateDiv);
+
+}
+
+function addEventListeners() {
+
+  const mapDiv = document.getElementById("date-submit");
+  google.maps.event.addDomListener(mapDiv, "click", (e) => {
+    e.preventDefault();
+    let start = document.getElementById("startDate").value;
+    let end = document.getElementById("endDate").value;
+    if(start && end) {
+      start = moment(start, "YYYY-MM-DD");
+      end = moment(end, "YYYY-MM-DD");
+    }
+    fetchLocations(start, end);
+  });
+}
 
 function getContentHTML(node) {
 
@@ -39,10 +64,6 @@ function createPointMarker(node) {
   let marker = new google.maps.Marker({
     position: geom,
   });
-   
-  let information = new google.maps.InfoWindow({
-    content: getContentHTML(node),
-  });
  
   google.maps.event.addListener(marker, 'spider_click', function(e) {
     iw.setContent(getContentHTML(node));
@@ -53,29 +74,60 @@ function createPointMarker(node) {
   return marker;
 }
 
+function filterByDate(edges, startDate, endDate) {
+  if(!startDate || !endDate) {
+    return edges;
+  }
+
+  return edges.filter(edge => {
+      let createdAt = moment(edge.node.createdAt, "YYYY-MM-DD'T'hh:mm:ss");
+      return createdAt.isSameOrAfter(startDate, 'day') && createdAt.isSameOrBefore(endDate, 'day');
+  });
+}
+
 function createMarkers(edges) {
-  let markers = [];
   if(Array.isArray(edges)) {
-    markers = edges.map(edge => createPointMarker(edge.node)); 
+    myMarkers = edges.map(edge => createPointMarker(edge.node)); 
   } else {
     console.log("Invalid input type.  Edges must be an array.");
   }
-  return markers;
 }
 
-function process(data) {
+function process(data, startDate, endDate) {
   if(data.allConnections && data.allConnections.edges.length > 0) {
-    const markers = createMarkers(data.allConnections.edges);
+    const edges = filterByDate(data.allConnections.edges, startDate, endDate);
+    createMarkers(edges);
     const properties = {
       imagePath: './images/m',
       maxZoom: 15
     };
 
-    new MarkerClusterer(myMap, markers, properties);
+    myMarkerClusterer = new MarkerClusterer(myMap, myMarkers, properties);
   }
 }
 
-function fetchAllLocations() {
+// Sets the map on all markers in the array.
+function setMapOnAll(map) {
+  for (let i = 0; i < myMarkers.length; i++) {
+    myMarkers[i].setMap(map);
+  }
+}
+
+// Removes the markers from the map, but keeps them in the array.
+function clearMarkers() {
+  setMapOnAll(null);
+  if(myMarkerClusterer) {
+    myMarkerClusterer.clearMarkers();
+  }
+  myMarkers = [];
+}
+
+/**
+ * 
+ * @param {String} [startDate] Start Date in format "YYYY-MM-DD"
+ * @param {String} [endDate] End Date in format "YYYY-MM-DD"
+ */
+function fetchLocations(startDate, endDate) {
   let params = {
     method: "POST",
     headers: {
@@ -84,13 +136,14 @@ function fetchAllLocations() {
     body: JSON.stringify({ query: '{allConnections{edges{node{sourceAddress sourcePort destinationAddress destinationPort latitude longitude createdAt}}}}'}) 
   };
   
+  clearMarkers();
   fetch(url, params)
     .then(data => {
       return data.json();
     })
     .then(resp => {
       if(resp && resp.data) {
-        process(resp.data); 
+        process(resp.data, startDate, endDate); 
       } else {
         console.log("Failed to load data from server.");
       } 

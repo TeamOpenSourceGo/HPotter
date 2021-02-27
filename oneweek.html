@@ -4,6 +4,7 @@
     <title>One Week</title>
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/@googlemaps/markerclustererplus/dist/index.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/OverlappingMarkerSpiderfier/1.0.3/oms.min.js"></script>
     <script type="text/javascript" src="./oneweek.js"></script>
@@ -24,5 +25,14 @@
   </head>
   <body>
     <div id="map"></div>
+      <div id="hp-date-picker" class="hp-date-picker-container">
+        <form class="form-inline">
+          <label for="startDate">Start:</label>
+          <input type="date" id="startDate" name="startDate"><br>
+          <label for="endDate">End:</label>
+          <input type="date" id="endDate" name="endDate"><br>
+          <input type="submit" id="date-submit" value="Submit">
+        </form>
+      </div>
   </body>
 </html>
