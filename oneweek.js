@@ -124,8 +124,8 @@ function clearMarkers() {
 
 /**
  * 
- * @param {String} [startDate] Start Date in format "YYYY-MM-DD"
- * @param {String} [endDate] End Date in format "YYYY-MM-DD"
+ * @param {Object} [startDate] Start Date moment date object
+ * @param {Object} [endDate] End Date moment date object
  */
 function fetchLocations(startDate, endDate) {
   let params = {
