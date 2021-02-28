@@ -18,9 +18,15 @@ output_chain = iptc.Chain(filter_table, 'OUTPUT')
 forward_chain = iptc.Chain(filter_table, 'FORWARD')
 builtin_chains = [input_chain, output_chain, forward_chain]
 
-hpotter_input_chain = filter_table.create_chain("hpotter_input")
-hpotter_output_chain = filter_table.create_chain("hpotter_output")
-hpotter_forward_chain = filter_table.create_chain("hpotter_forward")
+hpotter_input_chain = iptc.Chain(filter_table, "hpotter_input")
+if not hpotter_input_chain:
+     hpotter_input_chain = filter_table.create_chain("hpotter_input")
+hpotter_output_chain = iptc.Chain(filter_table, "hpotter_output")
+if not hpotter_input_chain:
+     hpotter_output_chain = filter_table.create_chain("hpotter_output")
+hpotter_forward_chain = iptc.Chain(filter_table, "hpotter_forward")
+if not hpotter_forward_chain:
+     hpotter_forward_chain = filter_table.create_chain("hpotter_forward")
 hpotter_chains = [hpotter_input_chain, hpotter_output_chain, hpotter_forward_chain]
 
 hpotter_chain_rules = []
