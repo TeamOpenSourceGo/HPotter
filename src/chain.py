@@ -19,15 +19,22 @@ forward_chain = iptc.Chain(filter_table, 'FORWARD')
 builtin_chains = [input_chain, output_chain, forward_chain]
 
 hpotter_input_chain = iptc.Chain(filter_table, "hpotter_input")
-if not hpotter_input_chain:
-     hpotter_input_chain = filter_table.create_chain("hpotter_input")
+if not filter_table.is_chain(hpotter_input_chain):
+    hpotter_input_chain = filter_table.create_chain("hpotter_input")
+
 hpotter_output_chain = iptc.Chain(filter_table, "hpotter_output")
-if not hpotter_input_chain:
-     hpotter_output_chain = filter_table.create_chain("hpotter_output")
+if not filter_table.is_chain(hpotter_output_chain):
+    hpotter_output_chain = filter_table.create_chain("hpotter_output")
+
 hpotter_forward_chain = iptc.Chain(filter_table, "hpotter_forward")
-if not hpotter_forward_chain:
-     hpotter_forward_chain = filter_table.create_chain("hpotter_forward")
+if not filter_table.is_chain(hpotter_forward_chain):
+    hpotter_forward_chain = filter_table.create_chain("hpotter_forward")
+
 hpotter_chains = [hpotter_input_chain, hpotter_output_chain, hpotter_forward_chain]
+
+for chain in hpotter_chains:
+    chain.flush()
+    
 
 hpotter_chain_rules = []
 
@@ -147,12 +154,12 @@ def delete_container_rules(obj):
     iptc.easy.delete_rule('filter', "hpotter_input", obj.drop_rule)
 
 def add_connection_rules():
-    iptc.easy.insert_rule('filter', 'OUTPUT', cout_rule)
-    iptc.easy.insert_rule('filter', 'INPUT', cin_rule)
+    iptc.easy.insert_rule('filter', 'hpotter_output', cout_rule)
+    iptc.easy.insert_rule('filter', 'hpotter_input', cin_rule)
 
 def delete_connection_rules():
-    iptc.easy.delete_rule('filter', "OUTPUT", cout_rule)
-    iptc.easy.delete_rule('filter', "INPUT", cin_rule)
+    iptc.easy.delete_rule('filter', "hpotter_output", cout_rule)
+    iptc.easy.delete_rule('filter', "hpotter_input", cin_rule)
 
 def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     proto = 'tcp'
@@ -165,7 +172,7 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     }
     logger.debug(rej_d)
     ssh_rules.insert(0, rej_d)
-    iptc.easy.insert_rule('filter', 'INPUT', rej_d)
+    iptc.easy.insert_rule('filter', 'hpotter_input', rej_d)
 
     # mulitple private ip ranges
     # 10.0.0.0/8
@@ -179,7 +186,7 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     }
     logger.debug(lan_d)
     ssh_rules.insert(0, lan_d)
-    iptc.easy.insert_rule('filter', 'INPUT', lan_d)
+    iptc.easy.insert_rule('filter', 'hpotter_input', lan_d)
 
     local_d = { \
             'src':'127.0.0.0/8', \
@@ -189,15 +196,15 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     }
     logger.debug(local_d)
     ssh_rules.insert(0, local_d)
-    iptc.easy.insert_rule('filter', 'INPUT', local_d)
+    iptc.easy.insert_rule('filter', 'hpotter_input', local_d)
 
 def delete_ssh_rules():
     for dict in ssh_rules:
-        iptc.easy.delete_rule('filter', 'INPUT', dict)
+        iptc.easy.delete_rule('filter', 'hpotter_input', dict)
 
 def add_dns_rules():
     logger.debug(dns_in)
-    iptc.easy.insert_rule('filter', 'INPUT', dns_in)
+    iptc.easy.insert_rule('filter', 'hpotter_input', dns_in)
 
     #/etc/resolv.conf may contain more than one server
     servers = get_dns_servers()
@@ -210,12 +217,12 @@ def add_dns_rules():
         }
         dns_list.insert(0, dns_out)
         logger.debug(dns_out)
-        iptc.easy.insert_rule('filter', 'OUTPUT', dns_out)
+        iptc.easy.insert_rule('filter', 'hpotter_output', dns_out)
 
 def delete_dns_rules():
-    iptc.easy.delete_rule('filter', "INPUT", dns_in)
+    iptc.easy.delete_rule('filter', "hpotter_input", dns_in)
     for dict in dns_list:
-        iptc.easy.delete_rule('filter', "OUTPUT", dict)
+        iptc.easy.delete_rule('filter', "hpotter_output", dict)
     
 # credit to James John: https://github.com/donjajo/py-world/blob/master/resolvconfReader.py
 def get_dns_servers():
