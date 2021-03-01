@@ -3,7 +3,7 @@ let myMap;
 let iw;
 
 let script = document.createElement('script');
-script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyA0P5XjTSHj7t2nmNL7_x8d5TGaxQYse4s&callback=initMap"
+script.src = "https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE&callback=initMap"
 script.async = true;
 
 function initMap() {

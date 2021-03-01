@@ -76,6 +76,7 @@ class HP():
                 logger.info('Calling ListenTread.shutdown')
                 listen_thread.shutdown()
 
+        for listen_thread in self.listen_threads:
             while listen_thread.is_alive():
                 time.sleep(.01)
 
@@ -91,6 +92,6 @@ if "__main__" == __name__:
 
     killer = GracefulKiller()
     while not killer.kill_now:
-        time.sleep(5)
+        time.sleep(4)
 
     hp.shutdown()

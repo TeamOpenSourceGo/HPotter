@@ -35,35 +35,3 @@ A list of one or more of the following.
 * database\_password, default: ''
 * database\_host, default: ''
 * database\_port', default: ''
-
-### src/chain.py
-This file dynamically sets firewall rules while the honey pot is running.
-By default it opens ssh port 22. To change this, edit the port number on 
-line 153 in the 'add_ssh_rules' function.
-On the device you wish to connect to, you must edit the sshd_config file:
-```
-    <nano/vim/etc> /etc/ssh/sshd_config
-```
-In the file, locate the line; 
-```
-    Port 22
-```
-which may be commented out. Change this value to any port number you wish.
-(You are recommended to pick a port between 1024 - 49152 as these are lesser known ports)
-
-Restart the ssh daemon with 
-```
-    sudo systemctl restart sshd
-```
-
-Now, when you wish to connect to the device:
-```
-    ssh user@ip_address -p <port number>
-```
-
-You may also wish to specify your local subnet in chain.py
-You can find this on line 169 in the 'add_ssh_rules' function.
-```
-    #'src':'192.168.0.0/16', \
-```
-Change the private ip range to suit your own local network.

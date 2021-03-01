@@ -162,7 +162,7 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     # 172.16.0.0/12
     # 192.168.0.0/16
     lan_d = { \
-            #'src':'192.168.0.0/16', \
+            'src':'192.168.0.0/16', \
             'target':'ACCEPT', \
             'protocol': proto, \
             proto :{'dport':port} \
