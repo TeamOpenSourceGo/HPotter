@@ -1,6 +1,8 @@
 import iptc
 import socket
 
+from iptc.ip4tc import IPTCError
+
 from src.logger import logger
 
 # here's the idea. create hpotter chains that mirror the three builtins. add
@@ -18,10 +20,7 @@ output_chain = iptc.Chain(filter_table, 'OUTPUT')
 forward_chain = iptc.Chain(filter_table, 'FORWARD')
 builtin_chains = [input_chain, output_chain, forward_chain]
 
-hpotter_input_chain = filter_table.create_chain("hpotter_input")
-hpotter_output_chain = filter_table.create_chain("hpotter_output")
-hpotter_forward_chain = filter_table.create_chain("hpotter_forward")
-hpotter_chains = [hpotter_input_chain, hpotter_output_chain, hpotter_forward_chain]
+hpotter_chains = []
 
 hpotter_chain_rules = []
 
@@ -68,10 +67,7 @@ def delete_drop_rules():
         iptc.easy.delete_rule('filter', chain.name, rule_d)
 
     for chain in hpotter_chains:
-        chain.flush()
-
-    for chain in hpotter_chains:
-        chain.delete()
+        iptc.easy.delete_chain('filter', chain.name, flush=True)
 
 def create_listen_rules(obj):
     proto = "tcp"
@@ -237,3 +233,28 @@ def get_host_ip():
     finally:
         s.close()
     return ip
+
+def create_hpotter_chains():
+    hpotter_input_chain = filter_table.create_chain("hpotter_input")
+    hpotter_chains.append(hpotter_input_chain)
+    hpotter_output_chain = filter_table.create_chain("hpotter_output")
+    hpotter_chains.append(hpotter_output_chain)
+    hpotter_forward_chain = filter_table.create_chain("hpotter_forward")
+    hpotter_chains.append(hpotter_forward_chain)
+
+def flush_chains():
+    #delete hpotter rules in builtins if they exist
+    for chain, rule in zip(builtin_chains, hpotter_chain_rules):
+        if iptc.easy.has_rule('filter', chain.name, rule):
+            iptc.easy.delete_rule('filter', chain.name, rule)
+    #delete other rules created by HPotter if they exist
+    for fn in [delete_connection_rules, delete_dns_rules, delete_ssh_rules]:
+        try:
+            fn() 
+        except IPTCError:
+            pass
+    #delete hpotter chains if they exist
+    for name in ['hpotter_input', 'hpotter_output', 'hpotter_forward']:
+        if iptc.easy.has_chain('filter', name):
+            iptc.easy.delete_chain('filter', name, flush=True)
+    
