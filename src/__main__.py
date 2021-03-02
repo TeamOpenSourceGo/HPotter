@@ -80,10 +80,7 @@ class HP():
             while listen_thread.is_alive():
                 time.sleep(.01)
 
-        chain.delete_dns_rules()
-        chain.delete_ssh_rules()
-        chain.delete_connection_rules()
-        chain.delete_drop_rules()
+        chain.flush_chains()
 
 # pylint: disable=C0122
 if "__main__" == __name__:
