@@ -1,5 +1,5 @@
 # Disable sudo to speed up the build
-sudo: true
+sudo: false
 
 # Set the build language to Python
 language: python
@@ -13,7 +13,7 @@ install:
   
 addons:
   sonarcloud:
-    organization: "the-mostly-muggleskey" # the key of the org you chose at step #3
+    organization: "the-mostly-muggleskey"
      
 # Run the unit test
 script:
