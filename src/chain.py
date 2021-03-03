@@ -202,19 +202,18 @@ def get_host_ip():
 def create_hpotter_chains():
     for name in hpotter_chain_names:
         hpotter_chain = iptc.Chain(filter_table, name)
-        if not filter_table.is_chain(hpotter_chain):
+        if not iptc.easy.has_chain('filter', name):
             hpotter_chain = filter_table.create_chain(name)
         hpotter_chains.append(hpotter_chain)
-        
 
 def flush_chains():
-    #delete hpotter rules in builtins if they exist
     for chain, name in zip(builtin_chains, hpotter_chain_names):
-        if iptc.easy.has_rule('filter', chain.name, {'target':name}):
-            iptc.easy.delete_rule('filter', chain.name, {'target':name})
-
-    #delete hpotter chains if they exist
-    for name in hpotter_chain_names:
         if iptc.easy.has_chain('filter', name):
+
+            #delete hpotter rules in builtins if they exist
+            if iptc.easy.has_rule('filter', chain.name, {'target':name}):
+                iptc.easy.delete_rule('filter', chain.name, {'target':name})
+
+            #delete hpotter chains if they exist
             iptc.easy.flush_chain('filter', name)
             iptc.easy.delete_chain('filter', name)

@@ -38,7 +38,6 @@ class HP():
 
     def startup(self):
         ''' Read the configuration and start the listen threads. '''
-        chain.create_hpotter_chains() # FIXME: Remove when error is resolved
         chain.flush_chains()
         chain.create_hpotter_chains()
 
