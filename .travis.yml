@@ -5,7 +5,7 @@ sudo: false
 language: python
 
 before_install:
-  - sudo iptables-legacy -L
+  - sudo iptables -L
 
 # Install the codecov pip dependency
 install:
