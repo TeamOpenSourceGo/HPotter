@@ -8,8 +8,8 @@ language: python
 install:
   - pip install codecov
   - sudo pip install coverage
-  - pip install -r requirements.txt
-  - pip install -r requirements-dev.txt
+  - sudo pip install -r requirements.txt
+  - sudo pip install -r requirements-dev.txt
   
 addons:
   sonarcloud:
