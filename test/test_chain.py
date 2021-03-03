@@ -1,6 +1,5 @@
 import unittest
 import iptc
-import unittest
 from src.chain import *
 
 table = iptc.Table(iptc.Table.FILTER)
