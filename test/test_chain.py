@@ -79,4 +79,7 @@ class TestChain(unittest.TestCase):
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', rule_t) )
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', rule_f) )
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', drop) )
+
+    def test_flush(self):
+        flush_chains()
         
