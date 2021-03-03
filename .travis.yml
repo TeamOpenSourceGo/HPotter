@@ -1,5 +1,5 @@
 # Disable sudo to speed up the build
-sudo: true
+sudo: required
 
 # Set the build language to Python
 language: python
@@ -7,7 +7,7 @@ language: python
 # Install the codecov pip dependency
 install:
   - pip install codecov
-  - pip install coverage
+  - sudo pip install coverage
   - pip install -r requirements.txt
   - pip install -r requirements-dev.txt
   
@@ -17,7 +17,7 @@ addons:
      
 # Run the unit test
 script:
-  - sudo PATH=$PATH coverage run --source src -m unittest discover
+  - sudo coverage run --source src -m unittest discover
   - coverage xml -i
 
 # Push the results back to codecov
