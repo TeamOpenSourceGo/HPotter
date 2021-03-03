@@ -40,6 +40,7 @@ class HP():
         ''' Read the configuration and start the listen threads. '''
         chain.flush_chains()
         chain.create_hpotter_chains()
+
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', action='append',
             default=['config.yml'])

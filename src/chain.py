@@ -19,9 +19,7 @@ forward_chain = iptc.Chain(filter_table, 'FORWARD')
 builtin_chains = [input_chain, output_chain, forward_chain]
 
 hpotter_chains = []
-
-for chain in hpotter_chains:
-    chain.flush()
+hpotter_chain_names = ['hpotter_input', 'hpotter_output', 'hpotter_forward']
     
 hpotter_chain_rules = []
 
@@ -202,23 +200,20 @@ def get_host_ip():
     return ip
 
 def create_hpotter_chains():
-    hpotter_input_chain = filter_table.create_chain("hpotter_input")
-    hpotter_chains.append(hpotter_input_chain)
-    hpotter_output_chain = filter_table.create_chain("hpotter_output")
-    hpotter_chains.append(hpotter_output_chain)
-    hpotter_forward_chain = filter_table.create_chain("hpotter_forward")
-    hpotter_chains.append(hpotter_forward_chain)
+    for name in hpotter_chain_names:
+        hpotter_chain = iptc.Chain(filter_table, name)
+        if not iptc.easy.has_chain('filter', name):
+            hpotter_chain = filter_table.create_chain(name)
+        hpotter_chains.append(hpotter_chain)
 
 def flush_chains():
-    names = ['hpotter_input', 'hpotter_output', 'hpotter_forward']
-    #delete hpotter rules in builtins if they exist
-    for chain, name in zip(builtin_chains, names):
-        if iptc.easy.has_rule('filter', chain.name, {'target':name}):
-            iptc.easy.delete_rule('filter', chain.name, {'target':name})
-
-    #delete hpotter chains if they exist
-    for name in names:
+    for chain, name in zip(builtin_chains, hpotter_chain_names):
         if iptc.easy.has_chain('filter', name):
+
+            #delete hpotter rules in builtins if they exist
+            if iptc.easy.has_rule('filter', chain.name, {'target':name}):
+                iptc.easy.delete_rule('filter', chain.name, {'target':name})
+
+            #delete hpotter chains if they exist
             iptc.easy.flush_chain('filter', name)
             iptc.easy.delete_chain('filter', name)
-    
