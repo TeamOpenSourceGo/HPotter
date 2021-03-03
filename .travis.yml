@@ -17,7 +17,7 @@ addons:
      
 # Run the unit test
 script:
-  - sudo coverage run --source src -m unittest discover
+  - coverage run --source src -m unittest discover
   - coverage xml -i
 
 # Push the results back to codecov
