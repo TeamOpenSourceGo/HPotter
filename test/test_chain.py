@@ -1,6 +1,6 @@
 import unittest
 import iptc
-from unittest.mock import call, patch
+import unittest
 from src.chain import *
 
 table = iptc.Table(iptc.Table.FILTER)
