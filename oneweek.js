@@ -29,6 +29,8 @@ function addCustomControls() {
   const dateDiv = document.getElementById("hp-date-picker");
   myMap.controls[google.maps.ControlPosition.TOP_RIGHT].push(dateDiv);
 
+  const zoomToBounds = document.getElementById("hp-zoom-to-bounds");
+  myMap.controls[google.maps.ControlPosition.RIGHT_TOP].push(zoomToBounds);
 }
 
 function addEventListeners() {
@@ -44,10 +46,17 @@ function addEventListeners() {
     }
     fetchLocations(start, end);
   });
+
+  const zoomToBounds = document.getElementById("hp-zoom-to-bounds");
+  google.maps.event.addDomListener(zoomToBounds, "click", () => {
+    const bounds = new google.maps.LatLngBounds();
+    myMarkers.forEach(mark => bounds.extend(mark.position));
+    myMap.fitBounds(bounds);
+  });
+
 }
 
 function getContentHTML(node) {
-
   let content = "<div>"
   for(const key of Object.keys(node)) {
      if(node[key]) {
@@ -98,7 +107,7 @@ function process(data, startDate, endDate) {
     const edges = filterByDate(data.allConnections.edges, startDate, endDate);
     createMarkers(edges);
     const properties = {
-      imagePath: './images/m',
+      imagePath: './static/images/m',
       maxZoom: 15
     };
 
@@ -113,7 +122,7 @@ function setMapOnAll(map) {
   }
 }
 
-// Removes the markers from the map, but keeps them in the array.
+// Removes the markers from the map
 function clearMarkers() {
   setMapOnAll(null);
   if(myMarkerClusterer) {
