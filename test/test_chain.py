@@ -1,6 +1,7 @@
 import unittest
 import iptc
 from src.chain import *
+unittest.TestLoader.sortTestMethodsUsing = None
 
 table = iptc.Table(iptc.Table.FILTER)
 
@@ -10,7 +11,7 @@ class TestChain(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_create_hpotter_chains(self):
+    def test01_create_hpotter_chains(self):
         flush_chains()
         create_hpotter_chains()
         for name in ['hpotter_input','hpotter_output','hpotter_forward']: 
