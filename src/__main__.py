@@ -35,6 +35,7 @@ class HP():
             thread = ListenThread(container, self.database)
             self.listen_threads.append(thread)
             thread.start()
+            time.sleep(4)
 
     def startup(self):
         ''' Read the configuration and start the listen threads. '''
