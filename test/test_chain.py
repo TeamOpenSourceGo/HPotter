@@ -13,6 +13,9 @@ class TestChain(unittest.TestCase):
 
     def test01_create_hpotter_chains(self):
         flush_chains()
+        input_chain = iptc.Chain(filter_table, 'INPUT')
+        output_chain = iptc.Chain(filter_table, 'OUTPUT')
+        forward_chain = iptc.Chain(filter_table, 'FORWARD')
         create_hpotter_chains()
         for name in ['hpotter_input','hpotter_output','hpotter_forward']: 
             if iptc.is_table_available(iptc.Table.FILTER):
