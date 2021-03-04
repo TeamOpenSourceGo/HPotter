@@ -1,5 +1,6 @@
 import iptc
 import socket
+import threading
 
 from src.logger import logger
 
@@ -47,6 +48,8 @@ dns_in = { \
 dns_list = []
 ssh_rules = []
 
+listen_lock = threading.Lock()
+
 def add_drop_rules():
     # append drop to all hpotter chains
     for chain in hpotter_chains:
@@ -62,6 +65,8 @@ def add_drop_rules():
         iptc.easy.insert_rule('filter', chain.name, rule_d)
 
 def create_listen_rules(obj):
+    listen_lock.acquire()
+
     listen_address = obj.listen_address
     if len(listen_address) == 0 or listen_address == '0.0.0.0':
         listen_address = '0.0.0.0/0'
@@ -85,6 +90,8 @@ def create_listen_rules(obj):
     }
     logger.debug(obj.from_rule)
     iptc.easy.insert_rule('filter', 'hpotter_output', obj.from_rule)
+
+    listen_lock.release()
 
 def create_container_rules(obj):
         proto = obj.container_protocol.lower()
