@@ -159,7 +159,7 @@ class TestChain(unittest.TestCase):
     def test_flush(self):
         flush_chains()
         for chain,name in zip(builtin_chains, hpotter_chain_names):
-            rule = {'target': name}
+            rule = {}
             self.assertTrue(not iptc.easy.has_rule('filter', chain.name, rule))
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_output'))
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_input'))
