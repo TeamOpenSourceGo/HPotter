@@ -4,9 +4,6 @@ sudo: false
 # Set the build language to Python
 language: python
 
-before_install:
-  - sudo iptables -V
-
 # Install the codecov pip dependency
 install:
   - pip install codecov

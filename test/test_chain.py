@@ -30,18 +30,21 @@ class TestChain(unittest.TestCase):
 
     def test_create_listen_rules(self):
         thread_mock = unittest.mock.Mock()
-        thread_mock.listen_port = '33000'
+        thread_mock.listen_address = '192.168.12.15'
+        thread_mock.listen_port = 33000
         create_listen_rules(thread_mock)
         proto = 'tcp'
         rule_i = { \
+            'dst': thread_mock.listen_address, \
             'target': 'ACCEPT', \
             'protocol': proto, \
-            proto: {'dport': thread_mock.listen_port} \
+            proto: {'dport': str(thread_mock.listen_port)} \
         }
         rule_o = { \
+            'src': thread_mock.listen_address, \
             'target': 'ACCEPT', \
             'protocol': proto, \
-            proto: {'sport': thread_mock.listen_port} \
+            proto: {'sport': str(thread_mock.listen_port)} \
         }
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', rule_i) )
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', rule_o) )
