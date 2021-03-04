@@ -1,5 +1,6 @@
 import iptc
 import socket
+import threading
 
 from src.logger import logger
 
@@ -47,6 +48,8 @@ dns_in = { \
 dns_list = []
 ssh_rules = []
 
+thread_lock = threading.Lock()
+
 def add_drop_rules():
     # append drop to all hpotter chains
     for chain in hpotter_chains:
@@ -62,9 +65,16 @@ def add_drop_rules():
         iptc.easy.insert_rule('filter', chain.name, rule_d)
 
 def create_listen_rules(obj):
+    thread_lock.acquire()
+
+    listen_address = obj.listen_address
+    if len(listen_address) == 0 or listen_address == '0.0.0.0':
+        listen_address = '0.0.0.0/0'
+
     proto = "tcp"
 
     obj.to_rule = { \
+        'dst': listen_address, \
         'target': 'ACCEPT', \
         'protocol': proto, \
         proto: {'dport': str(obj.listen_port)} \
@@ -73,6 +83,7 @@ def create_listen_rules(obj):
     iptc.easy.insert_rule('filter', 'hpotter_input', obj.to_rule)
 
     obj.from_rule = { \
+        'src': listen_address, \
         'target': 'ACCEPT', \
         'protocol': proto, \
         proto: {'sport': str(obj.listen_port)} \
@@ -80,39 +91,56 @@ def create_listen_rules(obj):
     logger.debug(obj.from_rule)
     iptc.easy.insert_rule('filter', 'hpotter_output', obj.from_rule)
 
+    thread_lock.release()
+
 def create_container_rules(obj):
-        proto = obj.container_protocol.lower()
-        source_addr = obj.container_gateway
-        dest_addr = obj.container_ip
-        dstport = str(obj.container_port)
+    thread_lock.acquire()
     
-        obj.to_rule = { \
-                'src': source_addr, \
-                'dst': dest_addr, \
-                'target': 'ACCEPT', \
-                'protocol': proto, \
-                proto: {'dport': dstport} \
-        }
-        logger.debug(obj.to_rule)
-        iptc.easy.insert_rule('filter', 'hpotter_output', obj.to_rule)
+    proto = obj.container_protocol.lower()
+    source_addr = obj.container_gateway
+    dest_addr = obj.container_ip
+    dstport = str(obj.container_port)
 
-        obj.from_rule = { \
-                'src': dest_addr, \
-                'dst': source_addr, \
-                'target': 'ACCEPT', \
-                'protocol': proto, \
-                proto: {'sport': dstport} \
-        }
-        logger.debug(obj.from_rule)
-        iptc.easy.insert_rule('filter', 'hpotter_input', obj.from_rule)
+    obj.to_rule = { \
+            'src': source_addr, \
+            'dst': dest_addr, \
+            'target': 'ACCEPT', \
+            'protocol': proto, \
+            proto: {'dport': dstport} \
+    }
+    logger.debug(obj.to_rule)
+    iptc.easy.insert_rule('filter', 'hpotter_output', obj.to_rule)
 
-        obj.drop_rule = { \
+    obj.from_rule = { \
             'src': dest_addr, \
-            'dst': '!' + source_addr + "/16", \
-            'target': 'DROP' \
-        }
-        logger.debug(obj.drop_rule)
-        iptc.easy.insert_rule('filter', 'hpotter_input', obj.drop_rule)
+            'dst': source_addr, \
+            'target': 'ACCEPT', \
+            'protocol': proto, \
+            proto: {'sport': dstport} \
+    }
+    logger.debug(obj.from_rule)
+    iptc.easy.insert_rule('filter', 'hpotter_input', obj.from_rule)
+
+    obj.drop_rule = { \
+        'src': dest_addr, \
+        'dst': '!' + source_addr + "/16", \
+        'target': 'DROP' \
+    }
+    logger.debug(obj.drop_rule)
+    iptc.easy.insert_rule('filter', 'hpotter_input', obj.drop_rule)
+
+    thread_lock.release()
+
+def delete_container_rules(obj):
+    thread_lock.acquire()
+
+    logger.debug('Removing rules')
+
+    iptc.easy.delete_rule('filter', "hpotter_output", obj.to_rule)
+    iptc.easy.delete_rule('filter', "hpotter_input", obj.from_rule)
+    iptc.easy.delete_rule('filter', "hpotter_input", obj.drop_rule)
+
+    thread_lock.release()
 
 def add_connection_rules():
     iptc.easy.insert_rule('filter', 'hpotter_output', cout_rule)
@@ -136,7 +164,8 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     # 172.16.0.0/12
     # 192.168.0.0/16
     lan_d = { \
-            'src':'192.168.0.0/16', \
+            'src':'10.0.0.0/16', \
+            'dst': host_ip, \
             'target':'ACCEPT', \
             'protocol': proto, \
             proto :{'dport':port} \
@@ -147,6 +176,7 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
 
     local_d = { \
             'src':'127.0.0.0/8', \
+            'dst':'127.0.0.0/8', \
             'target':'ACCEPT', \
             'protocol': proto, \
             proto :{'dport':port} \
@@ -199,12 +229,19 @@ def get_host_ip():
         s.close()
     return ip
 
+
+host_ip = get_host_ip()
+
+
 def create_hpotter_chains():
     for name in hpotter_chain_names:
         hpotter_chain = iptc.Chain(filter_table, name)
+
         if not iptc.easy.has_chain('filter', name):
             hpotter_chain = filter_table.create_chain(name)
-        hpotter_chains.append(hpotter_chain)
+
+        if not hpotter_chain in hpotter_chains:
+            hpotter_chains.append(hpotter_chain)
 
 def flush_chains():
     for chain, name in zip(builtin_chains, hpotter_chain_names):

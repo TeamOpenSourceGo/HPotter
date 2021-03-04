@@ -97,6 +97,7 @@ class ContainerThread(threading.Thread):
             return
 
         self._start_and_join_threads()
+        chain.delete_container_rules(self)
         self.dest.close()
         self._stop_and_remove()
 

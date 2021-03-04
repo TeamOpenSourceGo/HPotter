@@ -78,8 +78,7 @@ class HP():
                 listen_thread.shutdown()
 
         for listen_thread in self.listen_threads:
-            while listen_thread.is_alive():
-                time.sleep(.01)
+            listen_thread.join()
 
         chain.flush_chains()
 
