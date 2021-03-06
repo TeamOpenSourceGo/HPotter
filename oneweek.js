@@ -1,11 +1,11 @@
-const url = "http://localhost:8080/"
+            const url = "http://localhost:8080/"
 
 let myMap;
 let iw;
 let myMarkers = [];
 let myMarkerClusterer;
 let script = document.createElement('script');
-script.src = "https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE&callback=initMap"
+script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyA0P5XjTSHj7t2nmNL7_x8d5TGaxQYse4s&callback=initMap"
 script.async = true;
 
 function initMap() {
@@ -21,6 +21,9 @@ function initMap() {
   fetchLocations();
   addCustomControls();
   addEventListeners();
+  addEventL();
+  addEventLM();
+  addEventLMY();
 }
 
 document.head.appendChild(script);
@@ -29,6 +32,8 @@ function addCustomControls() {
   const dateDiv = document.getElementById("hp-date-picker");
   myMap.controls[google.maps.ControlPosition.TOP_RIGHT].push(dateDiv);
 
+  const zoomToBounds = document.getElementById("hp-zoom-to-bounds");
+  myMap.controls[google.maps.ControlPosition.RIGHT_TOP].push(zoomToBounds);
 }
 
 function addEventListeners() {
@@ -44,10 +49,110 @@ function addEventListeners() {
     }
     fetchLocations(start, end);
   });
+
+  const zoomToBounds = document.getElementById("hp-zoom-to-bounds");
+  google.maps.event.addDomListener(zoomToBounds, "click", () => {
+    const bounds = new google.maps.LatLngBounds();
+    myMarkers.forEach(mark => bounds.extend(mark.position));
+    myMap.fitBounds(bounds);
+  });
+
+}
+
+function addEventL() {
+
+  const mapDiv = document.getElementById("dayChange");
+  google.maps.event.addDomListener(mapDiv, "click", (e) => {
+    e.preventDefault();
+    var today = new Date();
+    var ddd = today.getDate();
+    var mmm = today.getMonth()+1;
+    var yyy = today.getFullYear();
+    var newddd = ddd - 1;
+    if(ddd<10){
+    	ddd = '0' + ddd;
+    	newddd = '0' + newddd;
+    	}
+     if(mmm<10){
+    	mmm = '0' + mmm;
+    	}
+    let start = yyy + '-' + mmm + '-' + newddd;
+    let end = yyy + '-' + mmm + '-' + ddd;
+    if(start && end) {
+      start = moment(start, "YYYY-MM-DD");
+      end = moment(end, "YYYY-MM-DD");
+    }
+    fetchLocations(start, end);
+  });
+
+  
+}
+
+function addEventLM() {
+
+  const mapDiv = document.getElementById("monthChange");
+  google.maps.event.addDomListener(mapDiv, "click", (e) => {
+    e.preventDefault();
+    var today = new Date();
+    var ddd = today.getDate();
+    var mmm = today.getMonth()+1;
+    var yyy = today.getFullYear();
+    var newmmm = mmm - 1;
+    if(ddd<10){
+    	ddd = '0' + ddd;
+    	}
+     if(mmm<10){
+    	mmm = '0' + mmm;
+    	newmmm = '0' + newmmm;
+    	}
+    let start =  yyy + '-' + newmmm + '-' + ddd;
+    let end =  yyy + '-' + mmm + '-' + ddd;
+    if(start && end) {
+      start = moment(start, "YYYY-MM-DD");
+      end = moment(end, "YYYY-MM-DD");
+    }
+    fetchLocations(start, end);
+  });
+
+}
+
+function addEventLMY() {
+
+  const mapDiv = document.getElementById("yearChange");
+  google.maps.event.addDomListener(mapDiv, "click", (e) => {
+    e.preventDefault();
+    var today = new Date();
+    var ddd = today.getDate();
+    var mmm = today.getMonth()+1;
+    var yyy = today.getFullYear();
+    if(ddd<10){
+    	ddd = '0' + ddd;
+    	}
+     if(mmm<10){
+    	mmm = '0' + mmm;
+    	}
+    var newyyy = yyy - 1;
+    let start = newyyy + '-' + mmm + '-' + ddd;
+    let end = yyy + '-' + mmm + '-' + ddd;
+    if(start && end) {
+      start = moment(start, "YYYY-MM-DD");
+      end = moment(end, "YYYY-MM-DD");
+    }
+    fetchLocations(start, end);
+  });
+
+}
+
+
+
+function dayDiv(){
+ let start = moment(date).add(-24,'hours');
+ start = moment(start, "YYYY-MM-DD");
+ let end = moment().format(YYYY-MM-DD);
+ fetchLocations(start, end);
 }
 
 function getContentHTML(node) {
-
   let content = "<div>"
   for(const key of Object.keys(node)) {
      if(node[key]) {
@@ -98,7 +203,7 @@ function process(data, startDate, endDate) {
     const edges = filterByDate(data.allConnections.edges, startDate, endDate);
     createMarkers(edges);
     const properties = {
-      imagePath: './images/m',
+      imagePath: './static/images/m',
       maxZoom: 15
     };
 
@@ -113,7 +218,7 @@ function setMapOnAll(map) {
   }
 }
 
-// Removes the markers from the map, but keeps them in the array.
+// Removes the markers from the map
 function clearMarkers() {
   setMapOnAll(null);
   if(myMarkerClusterer) {
