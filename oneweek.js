@@ -59,7 +59,6 @@ function addEventListeners() {
 
 }
 
-<<<<<<< HEAD
 function addEventL() {
 
   const mapDiv = document.getElementById("dayChange");
@@ -153,8 +152,7 @@ function dayDiv(){
  fetchLocations(start, end);
 }
 
-=======
->>>>>>> 61e0a13865755a1a6e0e490c99d43eae0a02cc2d
+
 function getContentHTML(node) {
   let content = "<div>"
   for(const key of Object.keys(node)) {
