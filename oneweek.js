@@ -1,11 +1,11 @@
-            const url = "http://localhost:8080/"
+const url = "http://localhost:8080/"
 
 let myMap;
 let iw;
 let myMarkers = [];
 let myMarkerClusterer;
 let script = document.createElement('script');
-script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyA0P5XjTSHj7t2nmNL7_x8d5TGaxQYse4s&callback=initMap"
+script.src = "https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE&callback=initMap"
 script.async = true;
 
 function initMap() {
@@ -21,9 +21,6 @@ function initMap() {
   fetchLocations();
   addCustomControls();
   addEventListeners();
-  addEventL();
-  addEventLM();
-  addEventLMY();
 }
 
 document.head.appendChild(script);
@@ -57,101 +54,41 @@ function addEventListeners() {
     myMap.fitBounds(bounds);
   });
 
+  addEventDay();
+  addEventMonth();
+  addEventYear();
 }
 
-function addEventL() {
-
+function addEventDay() {
   const mapDiv = document.getElementById("dayChange");
   google.maps.event.addDomListener(mapDiv, "click", (e) => {
     e.preventDefault();
-    var today = new Date();
-    var ddd = today.getDate();
-    var mmm = today.getMonth()+1;
-    var yyy = today.getFullYear();
-    var newddd = ddd - 1;
-    if(ddd<10){
-    	ddd = '0' + ddd;
-    	newddd = '0' + newddd;
-    	}
-     if(mmm<10){
-    	mmm = '0' + mmm;
-    	}
-    let start = yyy + '-' + mmm + '-' + newddd;
-    let end = yyy + '-' + mmm + '-' + ddd;
-    if(start && end) {
-      start = moment(start, "YYYY-MM-DD");
-      end = moment(end, "YYYY-MM-DD");
-    }
-    fetchLocations(start, end);
-  });
 
-  
+    const today = new Date();
+    const oneDay = moment().subtract(1, 'days');
+    fetchLocations(oneDay, today);
+  });
 }
 
-function addEventLM() {
-
+function addEventMonth() {
   const mapDiv = document.getElementById("monthChange");
   google.maps.event.addDomListener(mapDiv, "click", (e) => {
     e.preventDefault();
-    var today = new Date();
-    var ddd = today.getDate();
-    var mmm = today.getMonth()+1;
-    var yyy = today.getFullYear();
-    var newmmm = mmm - 1;
-    if(ddd<10){
-    	ddd = '0' + ddd;
-    	}
-     if(mmm<10){
-    	mmm = '0' + mmm;
-    	newmmm = '0' + newmmm;
-    	}
-    let start =  yyy + '-' + newmmm + '-' + ddd;
-    let end =  yyy + '-' + mmm + '-' + ddd;
-    if(start && end) {
-      start = moment(start, "YYYY-MM-DD");
-      end = moment(end, "YYYY-MM-DD");
-    }
-    fetchLocations(start, end);
+    const today = new Date();
+    const oneMonth = moment().subtract(1, 'months');
+    fetchLocations(oneMonth, today);
   });
-
 }
 
-function addEventLMY() {
-
+function addEventYear() {
   const mapDiv = document.getElementById("yearChange");
   google.maps.event.addDomListener(mapDiv, "click", (e) => {
     e.preventDefault();
-    var today = new Date();
-    var ddd = today.getDate();
-    var mmm = today.getMonth()+1;
-    var yyy = today.getFullYear();
-    if(ddd<10){
-    	ddd = '0' + ddd;
-    	}
-     if(mmm<10){
-    	mmm = '0' + mmm;
-    	}
-    var newyyy = yyy - 1;
-    let start = newyyy + '-' + mmm + '-' + ddd;
-    let end = yyy + '-' + mmm + '-' + ddd;
-    if(start && end) {
-      start = moment(start, "YYYY-MM-DD");
-      end = moment(end, "YYYY-MM-DD");
-    }
-    fetchLocations(start, end);
+    const today = new Date();
+    const oneYear = moment().subtract(1, 'years');
+    fetchLocations(oneYear, today);
   });
-
 }
-
-
-
-function dayDiv(){
- let start = moment(date).add(-24,'hours');
- start = moment(start, "YYYY-MM-DD");
- let end = moment().format(YYYY-MM-DD);
- fetchLocations(start, end);
-}
-
 
 function getContentHTML(node) {
   let content = "<div>"
