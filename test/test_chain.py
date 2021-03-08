@@ -1,6 +1,8 @@
 import unittest
 import iptc
 from src.chain import *
+from unittest.mock import patch
+
 unittest.TestLoader.sortTestMethodsUsing = None
 
 table = iptc.Table(iptc.Table.FILTER)
@@ -105,19 +107,20 @@ class TestChain(unittest.TestCase):
         add_connection_rules()
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', inr))
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', out))
-        
+   
+    @patch('src.chain.host_ip', '192.168.0.199')
     def test_add_ssh_rules(self):
         proto = 'tcp'
         port = '22'
-        host_ip = get_host_ip()
+
         rej = { \
             'target': 'DROP', \
             'protocol': proto, \
             proto :{'dport':port} \
         }
         lan = { \
-            'src':'10.0.0.0/16', \
-            'dst': host_ip, \
+            'src': '192.168.0.0/16', \
+            'dst': '192.168.0.199', \
             'target':'ACCEPT', \
             'protocol': proto, \
             proto :{'dport':port} \
@@ -164,5 +167,7 @@ class TestChain(unittest.TestCase):
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_output'))
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_input'))
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_forward'))
-        
-        
+    
+    @patch('src.chain.host_ip', '192.168.0.200')
+    def test_get_host_subnet(self):
+        self.assertEqual('192.168.0.0/16', get_host_subnet())
