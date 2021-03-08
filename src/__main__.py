@@ -83,7 +83,7 @@ class HP():
         chain.flush_chains()
 
 # pylint: disable=C0122
-if "__main__" == __name__:
+if "__main__" == __name__: # pragma: no cover
     hp = HP()
     hp.startup()
 
