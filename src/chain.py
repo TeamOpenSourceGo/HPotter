@@ -188,16 +188,11 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
 def get_host_subnet():
     masks = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
     for subnet in masks:
-        try:
-            host = socket.gethostname()
-            ip = socket.gethostbyname(host)    
-            if ipaddress.ip_address(ip) in ipaddress.ip_network(subnet):
-                return subnet 
-            else:
-                return '10.0.0.0/8'
-        except:
-            logger.debug('Unable to fetch host IP')
-
+        if ipaddress.ip_address(host_ip) in ipaddress.ip_network(subnet):
+            return subnet
+        else:
+            return '127.0.0.0/8'
+    
 def add_dns_rules():
     logger.debug(dns_in)
     iptc.easy.insert_rule('filter', 'hpotter_input', dns_in)
