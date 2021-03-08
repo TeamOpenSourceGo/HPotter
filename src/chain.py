@@ -3,7 +3,6 @@ import iptc
 import socket
 import threading
 import ipaddress
-import socket
 
 from src.logger import logger
 
