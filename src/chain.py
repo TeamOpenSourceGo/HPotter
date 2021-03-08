@@ -1,6 +1,9 @@
+from logging import error
 import iptc
 import socket
 import threading
+import ipaddress
+import socket
 
 from src.logger import logger
 
@@ -159,12 +162,9 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     ssh_rules.insert(0, rej_d)
     iptc.easy.insert_rule('filter', 'hpotter_input', rej_d)
 
-    # mulitple private ip ranges
-    # 10.0.0.0/8
-    # 172.16.0.0/12
-    # 192.168.0.0/16
+    subnet = get_host_subnet()
     lan_d = { \
-            'src':'10.0.0.0/16', \
+            'src': subnet, \
             'dst': host_ip, \
             'target':'ACCEPT', \
             'protocol': proto, \
@@ -184,6 +184,19 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     logger.debug(local_d)
     ssh_rules.insert(0, local_d)
     iptc.easy.insert_rule('filter', 'hpotter_input', local_d)
+
+def get_host_subnet():
+    masks = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
+    for subnet in masks:
+        try:
+            host = socket.gethostname()
+            ip = socket.gethostbyname(host)    
+            if ipaddress.ip_address(ip) in ipaddress.ip_network(subnet):
+                return subnet 
+            else:
+                return '10.0.0.0/8'
+        except:
+            logger.debug('Unable to fetch host IP')
 
 def add_dns_rules():
     logger.debug(dns_in)
