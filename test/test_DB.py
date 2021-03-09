@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import mock_open, patch
 from src.database import Database
+from src import tables
 
 class TestDB(unittest.TestCase):
     def setup(self):

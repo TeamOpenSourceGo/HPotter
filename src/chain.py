@@ -222,7 +222,7 @@ def get_dns_servers():
                     resolvers.append( line.split()[1] )
 
         return resolvers
-    except IOError as error:
+    except IOError as error: #pragma: no cover
         return error.strerror
 
 def get_host_ip():
@@ -231,7 +231,7 @@ def get_host_ip():
         # doesn't have to be reachable
         s.connect(('1.1.1.1', 0))
         ip = s.getsockname()[0]
-    except Exception:
+    except Exception: # pragma: no cover
         ip = '127.0.0.1'
     finally:
         s.close()
