@@ -51,73 +51,43 @@ class TestChain(unittest.TestCase):
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', rule_i) )
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', rule_o) )
 
-    def test_create_container_rules(self):
-        cont_mock = unittest.mock.Mock()
-        cont_mock.container_protocol = 'tcp'
-        cont_mock.container_gateway = "71.88.115.9"
-        cont_mock.container_ip = "192.188.72.83"
-        cont_mock.container_port = 202
-        create_container_rules(cont_mock)
-        source = cont_mock.container_gateway
-        dest = cont_mock.container_ip
-        proto = cont_mock.container_protocol
-        port = str(cont_mock.container_port)
-        rule_t = { \
-                'src': source, \
-                'dst': dest, \
-                'target': 'ACCEPT', \
-                'protocol': proto, \
-                proto: {'dport': port} \
-        }
-        rule_f = { \
-                'src': dest, \
-                'dst': source, \
-                'target': 'ACCEPT', \
-                'protocol': proto, \
-                proto: {'sport': port} \
-        }
-        drop = { \
-                'src': dest, \
-                'dst': '!'+source+'/16', \
-                'target': 'DROP', \
-        }
-        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', rule_t) )
-        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', rule_f) )
-        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', drop) )
-
-        cont_mock.to_rule = rule_t
-        cont_mock.from_rule = rule_f
-        cont_mock.drop_rule = drop
-        delete_container_rules(cont_mock)
-        self.assertTrue(not iptc.easy.has_rule('filter', 'hpotter_output', rule_t) )
-        self.assertTrue(not iptc.easy.has_rule('filter', 'hpotter_input', rule_f) )
-        self.assertTrue(not iptc.easy.has_rule('filter', 'hpotter_input', drop) )
-
+    @patch('src.chain.host_ip', '172.16.0.88')
     def test_add_connection_rules(self):
-        out = { \
+        r1 = { \
+            'src':'172.16.0.88', \
             'target': 'ACCEPT', \
             'match': 'state', \
             'state': 'NEW,ESTABLISHED,RELATED'
         }
-        inr = { \
+        r2 = { \
+            'src':'127.0.0.1', \
+            'target': 'ACCEPT', \
+            'match': 'state', \
+            'state': 'NEW,ESTABLISHED,RELATED'
+        }
+        r3 = { \
+            'dst':'172.16.0.88', \
+            'target': 'ACCEPT', \
+            'match': 'state', \
+            'state': 'ESTABLISHED,RELATED'
+        }
+        r4 = { \
+            'dst':'127.0.0.1', \
             'target': 'ACCEPT', \
             'match': 'state', \
             'state': 'ESTABLISHED,RELATED'
         }
         add_connection_rules()
-        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', inr))
-        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', out))
+        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', r3))
+        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', r4))
+        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', r1))
+        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', r2))
    
     @patch('src.chain.host_ip', '192.168.0.199')
     def test_add_ssh_rules(self):
         proto = 'tcp'
         port = '22'
 
-        rej = { \
-            'target': 'DROP', \
-            'protocol': proto, \
-            proto :{'dport':port} \
-        }
         lan = { \
             'src': '192.168.0.0/16', \
             'dst': '192.168.0.199', \
@@ -133,31 +103,28 @@ class TestChain(unittest.TestCase):
             proto :{'dport':port} \
         }
         add_ssh_rules()
-        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', rej))
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', lan))
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', lcl))
     
     def test_add_dns_rules(self):
-        servers = get_dns_servers()
-        out_rules = []
-        d_in = { \
-            'dst':'127.0.0.53', \
-            'target':'ACCEPT', \
-            'protocol':'udp', \
-            'udp':{'dport':'53'} \
+        rule ={ \
+            'src': '127.0.0.0/8', \
+            'dst': '127.0.0.0/8', \
+            'target': 'ACCEPT', \
         }
-        for server in servers:
-            rule = { \
-                    'dst': server, \
-                    'target':'ACCEPT', \
-                    'protocol':'udp', \
-                    'udp': {'dport': '53'} \
-            }
-            out_rules.append(rule)
+        resolv1 = { \
+            'dst': "1.1.1.1", \
+            'target': 'ACCEPT' \
+        }
+        resolv2 = dns_resolv = { \
+            'src': "1.1.1.1", \
+            'target': 'ACCEPT' \
+        }
         add_dns_rules()
-        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', d_in))
-        for rule in out_rules:
-            self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', rule))
+        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', rule))
+        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', rule))
+        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_forward', resolv1))
+        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_forward', resolv2))
     
     def test_flush(self):
         flush_chains()
