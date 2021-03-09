@@ -1,11 +1,12 @@
 const url = "http://localhost:8080/"
 
 let myMap;
+let myHeatMap;
 let iw;
 let myMarkers = [];
 let myMarkerClusterer;
 let script = document.createElement('script');
-script.src = "https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE&callback=initMap"
+script.src = "https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE&libraries=visualization&callback=initMap"
 script.async = true;
 
 function initMap() {
@@ -31,10 +32,12 @@ function addCustomControls() {
 
   const zoomToBounds = document.getElementById("hp-zoom-to-bounds");
   myMap.controls[google.maps.ControlPosition.RIGHT_TOP].push(zoomToBounds);
+
+  const heatmap = document.getElementById("hp-heatmap");
+  myMap.controls[google.maps.ControlPosition.RIGHT_TOP].push(heatmap);
 }
 
 function addEventListeners() {
-
   const mapDiv = document.getElementById("date-submit");
   google.maps.event.addDomListener(mapDiv, "click", (e) => {
     e.preventDefault();
@@ -57,6 +60,16 @@ function addEventListeners() {
   addEventDay();
   addEventMonth();
   addEventYear();
+
+  const heatmap = document.getElementById("hp-heatmap");
+  google.maps.event.addDomListener(heatmap, "click", () => {
+    if(myHeatMap) {
+      deactivateHeatMapLayer();
+    } else {
+      activateHeatMapLayer();
+    }
+  });
+
 }
 
 function addEventDay() {
@@ -117,6 +130,33 @@ function createPointMarker(node) {
   return marker;
 }
 
+function hideMarkers() {
+  myMarkers.forEach(m => m.setVisible(false));
+  myMarkerClusterer.repaint(); 
+}
+
+function showMarkers() {
+  myMarkers.forEach(m => m.setVisible(true));
+  myMarkerClusterer.repaint();
+}
+
+function deactivateHeatMapLayer() {
+  if(myHeatMap) {
+    myHeatMap.setMap(null);
+    myHeatMap = null;
+  }
+  showMarkers();
+}
+
+function activateHeatMapLayer() {
+  hideMarkers();
+  let positions = myMarkers.map(m => m.getPosition());
+  myHeatMap = new google.maps.visualization.HeatmapLayer({
+    data: positions
+  });
+  myHeatMap.setMap(myMap);
+}
+
 function filterByDate(edges, startDate, endDate) {
   if(!startDate || !endDate) {
     return edges;
@@ -142,7 +182,8 @@ function process(data, startDate, endDate) {
     createMarkers(edges);
     const properties = {
       imagePath: './static/images/m',
-      maxZoom: 15
+      maxZoom: 15,
+      ignoreHidden: true
     };
 
     myMarkerClusterer = new MarkerClusterer(myMap, myMarkers, properties);
