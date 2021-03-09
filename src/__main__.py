@@ -36,6 +36,13 @@ class HP():
             self.listen_threads.append(thread)
             thread.start()
 
+    def add_rules(self):
+        chain.add_drop_rules()
+        chain.add_connection_rules()
+        chain.add_dns_rules()
+        chain.add_ssh_rules()
+        chain.add_docker_rules()
+
     def startup(self):
         ''' Read the configuration and start the listen threads. '''
         chain.flush_chains()
@@ -58,10 +65,7 @@ class HP():
         self.database = Database(self.config)
         self.database.open()
 
-        chain.add_drop_rules()
-        chain.add_connection_rules()
-        chain.add_ssh_rules()
-        chain.add_dns_rules()
+        self.add_rules()
 
         for container in args.container:
             with open(container) as container_file:

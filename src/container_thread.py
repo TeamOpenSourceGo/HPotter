@@ -9,7 +9,6 @@ import docker
 from src.logger import logger
 from src.one_way_thread import OneWayThread
 from src.lazy_init import lazy_init
-from src import chain
 
 class ContainerThread(threading.Thread):
     ''' The thread that gets created in listen_thread. '''
@@ -19,7 +18,7 @@ class ContainerThread(threading.Thread):
         super().__init__()
         self.container_gateway = self.container_ip = self.container_port = self.container_protocol = None
         self.dest = self.thread1 = self.thread2 = self.container = None
-        self.to_rule = self.from_rule = self.drop_rule = None
+        self.to_rule = self.from_rule = None
 
     '''
     Need to make a different one for macos as docker desktop for macos
@@ -43,8 +42,6 @@ class ContainerThread(threading.Thread):
             self.container_protocol = port.split('/')[1]
         logger.debug(self.container_port)
         logger.debug(self.container_protocol)
-
-        chain.create_container_rules(self)
 
         for _ in range(9):
             try:
@@ -82,7 +79,7 @@ class ContainerThread(threading.Thread):
     def run(self):
         try:
             client = docker.from_env()
-            self.container = client.containers.run(self.container_config['container'], detach=True)
+            self.container = client.containers.run(self.container_config['container'], dns=['1.1.1.1'], detach=True)
             logger.info('Started: %s', self.container)
             self.container.reload()
         except Exception as err:
@@ -97,7 +94,6 @@ class ContainerThread(threading.Thread):
             return
 
         self._start_and_join_threads()
-        chain.delete_container_rules(self)
         self.dest.close()
         self._stop_and_remove()
 
