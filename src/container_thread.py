@@ -55,9 +55,9 @@ class ContainerThread(threading.Thread):
                 time.sleep(2)
 
         logger.info('Unable to connect to ' + self.container_ip + ':' + \
-            self.container_port)
-        logger.info(err)
-        raise err
+            str(self.container_port))
+        #logger.info(err)
+        #raise err
 
 
     def _start_and_join_threads(self):
