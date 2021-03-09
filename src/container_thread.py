@@ -9,7 +9,6 @@ import docker
 from src.logger import logger
 from src.one_way_thread import OneWayThread
 from src.lazy_init import lazy_init
-from src import chain
 
 class ContainerThread(threading.Thread):
     ''' The thread that gets created in listen_thread. '''
@@ -43,8 +42,6 @@ class ContainerThread(threading.Thread):
             self.container_protocol = port.split('/')[1]
         logger.debug(self.container_port)
         logger.debug(self.container_protocol)
-
-        chain.create_container_rules(self)
 
         for _ in range(9):
             try:
@@ -97,7 +94,6 @@ class ContainerThread(threading.Thread):
             return
 
         self._start_and_join_threads()
-        chain.delete_container_rules(self)
         self.dest.close()
         self._stop_and_remove()
 
