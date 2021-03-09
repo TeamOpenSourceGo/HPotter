@@ -1,5 +1,4 @@
 import unittest
-import signal
 from unittest.mock import mock_open, call, patch
 from src.__main__ import HP, GracefulKiller
 
@@ -10,10 +9,10 @@ class TestMain(unittest.TestCase):
         pass
 
     @patch('logging.Logger.info')
-    def test_startup(self, mock):
+    def test_startup(self, info_mock):
         hp = HP()
         hp.startup()
-        mock.assert_any_call('Creating SSL configuration files')
+        info_mock.assert_any_call('Creating SSL configuration files')
         hp.shutdown()
     
     @patch('logging.Logger.info')
