@@ -19,7 +19,7 @@ class ContainerThread(threading.Thread):
         super().__init__()
         self.container_gateway = self.container_ip = self.container_port = self.container_protocol = None
         self.dest = self.thread1 = self.thread2 = self.container = None
-        self.to_rule = self.from_rule = self.drop_rule = None
+        self.to_rule = self.from_rule = None
 
     '''
     Need to make a different one for macos as docker desktop for macos

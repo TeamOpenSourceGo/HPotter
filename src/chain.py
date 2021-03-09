@@ -55,16 +55,19 @@ thread_lock = threading.Lock()
 def add_drop_rules():
     # append drop to all hpotter chains
     for chain in hpotter_chains:
-        iptc.easy.add_rule('filter', chain.name, drop_rule)
+        if iptc.easy.has_rule('filter', chain.name, drop_rule):
+            iptc.easy.add_rule('filter', chain.name, drop_rule)
 
     # create target for all hpotter chains
     for chain in hpotter_chains:
         rule_d = { 'target' : chain.name }
-        hpotter_chain_rules.append( rule_d )
+        if not rule_d in hpotter_chain_rules:
+            hpotter_chain_rules.append( rule_d )
 
     # make the hpotter chains the target for all builtin chains
     for rule_d, chain in zip(hpotter_chain_rules, builtin_chains):
-        iptc.easy.insert_rule('filter', chain.name, rule_d)
+        if iptc.easy.has_rule('filter', chain.name, rule_d):
+            iptc.easy.insert_rule('filter', chain.name, rule_d)
 
 def create_listen_rules(obj):
     thread_lock.acquire()
@@ -123,14 +126,6 @@ def create_container_rules(obj):
     logger.debug(obj.from_rule)
     iptc.easy.insert_rule('filter', 'hpotter_input', obj.from_rule)
 
-    obj.drop_rule = { \
-        'src': dest_addr, \
-        'dst': '!' + source_addr + "/16", \
-        'target': 'DROP' \
-    }
-    logger.debug(obj.drop_rule)
-    iptc.easy.insert_rule('filter', 'hpotter_input', obj.drop_rule)
-
     thread_lock.release()
 
 def delete_container_rules(obj):
@@ -140,7 +135,6 @@ def delete_container_rules(obj):
 
     iptc.easy.delete_rule('filter', "hpotter_output", obj.to_rule)
     iptc.easy.delete_rule('filter', "hpotter_input", obj.from_rule)
-    iptc.easy.delete_rule('filter', "hpotter_input", obj.drop_rule)
 
     thread_lock.release()
 
@@ -152,6 +146,7 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     proto = 'tcp'
     port = '22'
 
+    # first, block all ssh connections
     rej_d = { \
             'target': 'DROP', \
             'protocol': proto, \
@@ -161,6 +156,7 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     ssh_rules.insert(0, rej_d)
     iptc.easy.insert_rule('filter', 'hpotter_input', rej_d)
 
+    # then allow ssh connection from private ip's
     subnet = get_host_subnet()
     lan_d = { \
             'src': subnet, \
@@ -173,6 +169,7 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     ssh_rules.insert(0, lan_d)
     iptc.easy.insert_rule('filter', 'hpotter_input', lan_d)
 
+    # then allow ssh connections from loopback 
     local_d = { \
             'src':'127.0.0.0/8', \
             'dst':'127.0.0.0/8', \
