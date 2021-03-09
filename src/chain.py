@@ -55,7 +55,7 @@ thread_lock = threading.Lock()
 def add_drop_rules():
     # append drop to all hpotter chains
     for chain in hpotter_chains:
-        if iptc.easy.has_rule('filter', chain.name, drop_rule):
+        if not iptc.easy.has_rule('filter', chain.name, drop_rule):
             iptc.easy.add_rule('filter', chain.name, drop_rule)
 
     # create target for all hpotter chains
@@ -66,7 +66,7 @@ def add_drop_rules():
 
     # make the hpotter chains the target for all builtin chains
     for rule_d, chain in zip(hpotter_chain_rules, builtin_chains):
-        if iptc.easy.has_rule('filter', chain.name, rule_d):
+        if not iptc.easy.has_rule('filter', chain.name, rule_d):
             iptc.easy.insert_rule('filter', chain.name, rule_d)
 
 def create_listen_rules(obj):
@@ -192,6 +192,20 @@ def get_host_subnet():
 def add_dns_rules():
     logger.debug(dns_in)
     iptc.easy.insert_rule('filter', 'hpotter_input', dns_in)
+
+    dns_resolv = { \
+        'dst': "1.1.1.1", \
+        'target': 'ACCEPT' \
+    }
+    dns_list.insert(0, dns_resolv)
+    iptc.easy.insert_rule('filter', 'hpotter_forward', dns_resolv)
+
+    dns_resolv = { \
+        'src': "1.1.1.1", \
+        'target': 'ACCEPT' \
+    }
+    dns_list.insert(0, dns_resolv)
+    iptc.easy.insert_rule('filter', 'hpotter_forward', dns_resolv)
 
     #/etc/resolv.conf may contain more than one server
     servers = get_dns_servers()

@@ -82,7 +82,7 @@ class ContainerThread(threading.Thread):
     def run(self):
         try:
             client = docker.from_env()
-            self.container = client.containers.run(self.container_config['container'], detach=True)
+            self.container = client.containers.run(self.container_config['container'], dns=['1.1.1.1'], detach=True)
             logger.info('Started: %s', self.container)
             self.container.reload()
         except Exception as err:
