@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import call, patch
 from src import database
 from src.container_thread import ContainerThread
-from src.database import Database
 
 class TestContainer(unittest.TestCase):
     
@@ -19,3 +18,21 @@ class TestContainer(unittest.TestCase):
 
         ContainerThread._start_and_join_threads(cont)
         mock.assert_any_call('Joining thread2')
+
+    def test_init(self):
+        source = unittest.mock.Mock()
+        source.recv.side_effect=[bytes(i,'utf-8') for i in 'a']
+        connection = unittest.mock.Mock()
+        database = unittest.mock.Mock()
+
+        ct = ContainerThread(source, connection, {}, database)
+        self.assertEqual(ct.container_gateway, None)
+        self.assertEqual(ct.container_ip, None)
+        self.assertEqual(ct.container_port, None)
+        self.assertEqual(ct.container_protocol, None)
+        self.assertEqual(ct.dest, None)
+        self.assertEqual(ct.thread1, None)
+        self.assertEqual(ct.thread2, None)
+        self.assertEqual(ct.container, None)
+        self.assertEqual(ct.to_rule, None)
+        self.assertEqual(ct.from_rule, None)
