@@ -33,3 +33,8 @@ class TestOneWayThread(unittest.TestCase):
         response.sendall.assert_has_calls([call(b'a')], [call(b'a')])
         assert response.sendall.call_count == 2
 
+    def test_shutdown(self):
+        mockery = unittest.mock.Mock()
+        mockery.shutdown_requested = False
+        OneWayThread.shutdown(mockery)
+        self.assertEqual( mockery.shutdown_requested, True )

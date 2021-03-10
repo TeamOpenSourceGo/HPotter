@@ -36,8 +36,18 @@ class HP():
             self.listen_threads.append(thread)
             thread.start()
 
+    def add_rules(self):
+        chain.add_drop_rules()
+        chain.add_connection_rules()
+        chain.add_dns_rules()
+        chain.add_ssh_rules()
+        chain.add_docker_rules()
+
     def startup(self):
         ''' Read the configuration and start the listen threads. '''
+        chain.flush_chains()
+        chain.create_hpotter_chains()
+
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', action='append',
             default=['config.yml'])
@@ -55,10 +65,7 @@ class HP():
         self.database = Database(self.config)
         self.database.open()
 
-        chain.add_drop_rules()
-        chain.add_connection_rules()
-        chain.add_ssh_rules()
-        chain.add_dns_rules()
+        self.add_rules()
 
         for container in args.container:
             with open(container) as container_file:
@@ -74,21 +81,18 @@ class HP():
                 logger.info('Calling ListenTread.shutdown')
                 listen_thread.shutdown()
 
-            while listen_thread.is_alive():
-                time.sleep(.01)
+        for listen_thread in self.listen_threads:
+            listen_thread.join()
 
-        chain.delete_dns_rules()
-        chain.delete_ssh_rules()
-        chain.delete_connection_rules()
-        chain.delete_drop_rules()
+        chain.flush_chains()
 
 # pylint: disable=C0122
-if "__main__" == __name__:
+if "__main__" == __name__: # pragma: no cover
     hp = HP()
     hp.startup()
 
     killer = GracefulKiller()
     while not killer.kill_now:
-        time.sleep(5)
+        time.sleep(4)
 
     hp.shutdown()
