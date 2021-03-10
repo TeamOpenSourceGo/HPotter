@@ -24,7 +24,7 @@ class TestChain(unittest.TestCase):
         add_drop_rules()
         #check for drop rules in hpotter chains
         for chain in hpotter_chains:
-            self.assertTrue(iptc.easy.has_rule('filter', chain.name, drop_rule))
+            self.assertTrue(iptc.easy.has_rule('filter', chain.name, { 'target': 'DROP' }))
         
         #check for targets to hpotter chains in builtins
         for chain, rule_d in zip(builtin_chains, hpotter_chain_rules):
