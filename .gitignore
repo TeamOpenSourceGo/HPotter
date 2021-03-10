@@ -5,3 +5,5 @@
 .vscode
 .coverage
 coverage.xml
+.DS_Store
+htmlcov

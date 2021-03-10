@@ -153,7 +153,6 @@ class ListenThread(threading.Thread):
                 future = executor.submit(thread.start)
                 self.container_list.append((future, thread))
 
-        chain.delete_listen_rules(self)
         listen_socket.close()
 
     def shutdown(self):
