@@ -77,6 +77,8 @@ def flush_chains():
             iptc.easy.delete_chain('filter', name)
 
 def add_drop_rules():
+    drop_rule = { 'target': 'DROP' }
+    
     # append drop to all hpotter chains
     for chain in hpotter_chains:
         if not iptc.easy.has_rule('filter', chain.name, drop_rule):
@@ -208,7 +210,5 @@ hpotter_chains = []
 hpotter_chain_names = ['hpotter_input', 'hpotter_output', 'hpotter_forward']
     
 hpotter_chain_rules = []
-
-drop_rule = { 'target': 'DROP' }
 
 thread_lock = threading.Lock()
