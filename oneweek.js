@@ -57,9 +57,7 @@ function addEventListeners() {
     myMap.fitBounds(bounds);
   });
 
-  addEventDay();
-  addEventMonth();
-  addEventYear();
+  addPresetDateEvents();
 
   const heatmap = document.getElementById("hp-heatmap");
   google.maps.event.addDomListener(heatmap, "click", () => {
@@ -69,38 +67,19 @@ function addEventListeners() {
       activateHeatMapLayer();
     }
   });
-
 }
 
-function addEventDay() {
-  const mapDiv = document.getElementById("dayChange");
-  google.maps.event.addDomListener(mapDiv, "click", (e) => {
-    e.preventDefault();
-
-    const today = new Date();
-    const oneDay = moment().subtract(1, 'days');
-    fetchLocations(oneDay, today);
-  });
-}
-
-function addEventMonth() {
-  const mapDiv = document.getElementById("monthChange");
-  google.maps.event.addDomListener(mapDiv, "click", (e) => {
-    e.preventDefault();
-    const today = new Date();
-    const oneMonth = moment().subtract(1, 'months');
-    fetchLocations(oneMonth, today);
-  });
-}
-
-function addEventYear() {
-  const mapDiv = document.getElementById("yearChange");
-  google.maps.event.addDomListener(mapDiv, "click", (e) => {
-    e.preventDefault();
-    const today = new Date();
-    const oneYear = moment().subtract(1, 'years');
-    fetchLocations(oneYear, today);
-  });
+function addPresetDateEvents() {
+  const elements = document.getElementsByClassName("hp-preset-search");
+  for(const element of elements) {
+    google.maps.event.addDomListener(element, "click", (e) => {
+      e.preventDefault();
+  
+      const today = new Date();
+      const from = moment().subtract(1, e.target.value);
+      fetchLocations(from, today);
+    });
+  }
 }
 
 function getContentHTML(node) {
@@ -150,6 +129,10 @@ function deactivateHeatMapLayer() {
 
 function activateHeatMapLayer() {
   hideMarkers();
+  if(myHeatMap) {
+    myHeatMap.setMap(null);
+    myHeatMap = null;
+  }
   let positions = myMarkers.map(m => m.getPosition());
   myHeatMap = new google.maps.visualization.HeatmapLayer({
     data: positions
@@ -180,13 +163,18 @@ function process(data, startDate, endDate) {
   if(data.allConnections && data.allConnections.edges.length > 0) {
     const edges = filterByDate(data.allConnections.edges, startDate, endDate);
     createMarkers(edges);
-    const properties = {
-      imagePath: './static/images/m',
-      maxZoom: 15,
-      ignoreHidden: true
-    };
 
-    myMarkerClusterer = new MarkerClusterer(myMap, myMarkers, properties);
+    if (myHeatMap) {
+      activateHeatMapLayer();
+    } else {
+      const properties = {
+        imagePath: './static/images/m',
+        maxZoom: 15,
+        ignoreHidden: true
+      };
+
+      myMarkerClusterer = new MarkerClusterer(myMap, myMarkers, properties);
+    }
   }
 }
 
