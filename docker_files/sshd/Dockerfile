@@ -1,7 +1,6 @@
 FROM debian:latest
 EXPOSE 22
-RUN apt update && apt -y install openssh-server && mkdir /var/run/ssh
-d
+RUN apt-get update && apt-get -y install openssh-server && mkdir /var/run/sshd
 RUN service ssh restart
 RUN echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
 RUN echo 'PermitEmptyPasswords yes' >> /etc/ssh/sshd_config
