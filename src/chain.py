@@ -176,7 +176,7 @@ def add_docker_rules():
     iptc.easy.insert_rule('filter', 'hpotter_output', d_rule)
 
 def get_host_subnet():
-    masks = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/24']
+    masks = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
     dfalt = '127.0.0.0/8'
     for subnet in masks:
         if ipaddress.ip_address(host_ip) in ipaddress.ip_network(subnet):
