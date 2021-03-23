@@ -1,3 +1,4 @@
+cryptography>=3.2
 SQLAlchemy
 SQLAlchemy-Utils>=0.34.0
 cffi
@@ -6,3 +7,4 @@ docker
 pyOpenSSL
 pyyaml
 python-iptables
+maxminddb-geolite2

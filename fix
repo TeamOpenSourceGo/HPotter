@@ -1,0 +1,10 @@
+sudo iptables -F INPUT
+sudo iptables -F FORWARD
+sudo iptables -F OUTPUT
+
+sudo iptables -F hpotter_input
+sudo iptables -X hpotter_input
+sudo iptables -F hpotter_forward
+sudo iptables -X hpotter_forward
+sudo iptables -F hpotter_output
+sudo iptables -X hpotter_output
