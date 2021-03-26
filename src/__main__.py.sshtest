@@ -1,4 +1,6 @@
-''' The main entry point to HPotter. '''
+from src.plugins.ssh import start_server
+from src.plugins.ssh import stop_server
+
 import signal
 import time
 import argparse
@@ -26,29 +28,10 @@ class GracefulKiller:
 class HP():
     ''' The main class for HPotter '''
     def __init__(self):
-        self.listen_threads = []
         self.config = {}
         self.database = None
 
-    def _read_container_yaml(self, container_file):
-        for container in yaml.safe_load_all(container_file):
-            thread = ListenThread(container, self.database)
-            self.listen_threads.append(thread)
-            thread.start()
-
-    def add_rules(self):
-        chain.add_drop_rules()
-        chain.add_connection_rules()
-        chain.add_dns_rules()
-        chain.add_ssh_rules()
-        chain.add_docker_rules()
-
     def startup(self):
-        ''' Read the configuration and start the listen threads. '''
-        chain.flush_chains()
-        chain.create_hpotter_chains()
-        self.add_rules()
-
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', action='append',
             default=['config.yml'])
@@ -66,24 +49,7 @@ class HP():
         self.database = Database(self.config)
         self.database.open()
 
-        for container in args.container:
-            with open(container) as container_file:
-                self._read_container_yaml(container_file)
-
-    def shutdown(self):
-        ''' Shut all the listen threads down. '''
-        self.database.close()
-
-        for listen_thread in self.listen_threads:
-            logger.debug(listen_thread)
-            if listen_thread.is_alive():
-                logger.info('Calling ListenTread.shutdown')
-                listen_thread.shutdown()
-
-        for listen_thread in self.listen_threads:
-            listen_thread.join()
-
-        chain.flush_chains()
+        start_server(self.database)
 
 # pylint: disable=C0122
 if "__main__" == __name__: # pragma: no cover
@@ -93,5 +59,3 @@ if "__main__" == __name__: # pragma: no cover
     killer = GracefulKiller()
     while not killer.kill_now:
         time.sleep(4)
-
-    hp.shutdown()
