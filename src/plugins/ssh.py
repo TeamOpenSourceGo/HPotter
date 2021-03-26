@@ -6,11 +6,8 @@ import paramiko
 from paramiko.py3compat import u, decodebytes
 import _thread
 
-import hpotter.env
-from hpotter import tables
-from hpotter.logger import logger
-from hpotter.env import write_db, ssh_server
-from hpotter.docker_shell.shell import fake_shell
+from src import tables
+from src.logger import logger
 
 class SSHServer(paramiko.ServerInterface):
     undertest = False
@@ -21,9 +18,10 @@ class SSHServer(paramiko.ServerInterface):
         b"UWT10hcuO4Ks8=")
     good_pub_key = paramiko.RSAKey(data=decodebytes(data))
 
-    def __init__(self, connection):
+    def __init__(self, connection, database):
         self.event = threading.Event()
         self.connection = connection
+        self.database = database
 
     def check_channel_request(self, kind, chanid):
         if kind == "session":
@@ -35,7 +33,7 @@ class SSHServer(paramiko.ServerInterface):
         if username and password:
             login = tables.Credentials(username=username, password=password, \
                 connection=self.connection)
-            write_db(login)
+            self.database.write(login)
 
             return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
@@ -77,12 +75,13 @@ class SSHServer(paramiko.ServerInterface):
         return True
 
 class SshThread(threading.Thread):
-    def __init__(self):
+    def __init__(self, database):
         super(SshThread, self).__init__()
         self.ssh_socket = socket.socket(socket.AF_INET)
-        self.ssh_socket.bind(('0.0.0.0', 22))
+        self.ssh_socket.bind(('0.0.0.0', 2020))
         self.ssh_socket.listen(4)
         self.chan = None
+        self.database = database
 
     def run(self):
         while True:
@@ -97,7 +96,7 @@ class SshThread(threading.Thread):
                 destIP=self.ssh_socket.getsockname()[0],
                 destPort=self.ssh_socket.getsockname()[1],
                 proto=tables.TCP)
-            write_db(connection)
+            self.database.write(connection)
 
             transport = paramiko.Transport(client)
             transport.load_server_moduli()
@@ -108,14 +107,13 @@ class SshThread(threading.Thread):
             transport.add_server_key(host_key)
 
 
-            server = SSHServer(connection)
+            server = SSHServer(connection, self.database)
             transport.start_server(server=server)
 
             self.chan = transport.accept()
             if not self.chan:
                 logger.info('no chan')
                 continue
-            fake_shell(self.chan, connection, '# ')
             self.chan.close()
 
 
@@ -128,9 +126,9 @@ class SshThread(threading.Thread):
         except SystemExit:
             pass
 
-def start_server():
+def start_server(database):
     global ssh_server
-    ssh_server = SshThread()
+    ssh_server = SshThread(database)
     threading.Thread(target=ssh_server.run).start()
 
 def stop_server():
