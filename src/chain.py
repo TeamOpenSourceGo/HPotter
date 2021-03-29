@@ -140,10 +140,11 @@ def add_dns_rules():
 
 def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     proto = 'tcp'
-    port = '22'
+    port = configs.get('ssh_port', '')
+    subnet = configs.get('lan_subnet', '')
 
     # then allow ssh connection from private ip's
-    subnet = get_host_subnet()
+    #subnet = get_host_subnet()
     lan_d = { \
         'src': subnet, \
         'dst': host_ip, \
@@ -166,10 +167,10 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     iptc.easy.insert_rule('filter', 'hpotter_input', local_d)
 
 def add_docker_rules():
-    # FIXME: dynamically get docker subnet
+    network = configs.get('docker_subnet', '')
     d_rule = { \
-        'src': '172.17.0.0/16', \
-        'dst': '172.17.0.0/16', \
+        'src': network, \
+        'dst': network, \
         'target': 'ACCEPT' \
     }
     iptc.easy.insert_rule('filter', 'hpotter_input', d_rule)
@@ -195,7 +196,7 @@ def get_host_ip():
         s.close()
     return ip
 
-
+configs = {}
 
 host_ip = get_host_ip()
 
