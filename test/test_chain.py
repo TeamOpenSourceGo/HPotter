@@ -134,7 +134,3 @@ class TestChain(unittest.TestCase):
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_output'))
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_input'))
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_forward'))
-    
-    @patch('src.chain.host_ip', '192.168.0.200')
-    def test_get_host_subnet(self):
-        self.assertEqual('192.168.0.0/16', get_host_subnet())
