@@ -9,4 +9,4 @@ docker rmi $(docker images -a -q)
 docker build -t debian:telnetd .
 docker build --no-cache -t debian:telnetd .
 
-docker run -p 23:23 debian:telnetd
+docker run --hostname credentials_server -p 23:23 debian:telnetd
