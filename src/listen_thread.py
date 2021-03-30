@@ -134,7 +134,7 @@ class ListenThread(threading.Thread):
             thread.start()
         else:
             logger.info('unknown plugin: ' + name)
-            self.shutdown
+            self.shutdown()
 
     def run(self):
         if self.TLS:
