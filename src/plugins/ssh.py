@@ -75,62 +75,43 @@ class SSHServer(paramiko.ServerInterface):
         return True
 
 class SshThread(threading.Thread):
-    def __init__(self, database):
+    def __init__(self, source, connection, container_config, database):
         super(SshThread, self).__init__()
-        self.ssh_socket = socket.socket(socket.AF_INET)
-        self.ssh_socket.bind(('0.0.0.0', 2020))
-        self.ssh_socket.listen(4)
+        self.client = source
+        self.connection = connection
         self.chan = None
         self.database = database
+        self.container_ip = self.container_port = None
 
     def run(self):
-        while True:
-            try:
-                client, addr = self.ssh_socket.accept()
-            except ConnectionAbortedError:
-                break
+        self.database.write(self.connection)
 
-            connection = tables.Connections(
-                sourceIP=addr[0],
-                sourcePort=addr[1],
-                destIP=self.ssh_socket.getsockname()[0],
-                destPort=self.ssh_socket.getsockname()[1],
-                proto=tables.TCP)
-            self.database.write(connection)
+        transport = paramiko.Transport(self.client)
+        transport.load_server_moduli()
 
-            transport = paramiko.Transport(client)
-            transport.load_server_moduli()
-
-            # Experiment with different key sizes at:
-            # http://travistidwell.com/jsencrypt/demo/
-            host_key = paramiko.RSAKey(filename="RSAKey.cfg")
-            transport.add_server_key(host_key)
+        # Experiment with different key sizes at:
+        # http://travistidwell.com/jsencrypt/demo/
+        host_key = paramiko.RSAKey(filename="RSAKey.cfg")
+        transport.add_server_key(host_key)
 
 
-            server = SSHServer(connection, self.database)
-            transport.start_server(server=server)
+        server = SSHServer(self.connection, self.database)
+        transport.start_server(server=server)
 
-            self.chan = transport.accept()
-            if not self.chan:
-                logger.info('no chan')
-                continue
-            self.chan.close()
+        self.chan = transport.accept()
+        if not self.chan:
+            logger.info('no chan')
+            return
+
+        # TODO: run shell here
+        self.chan.close()
 
 
     def stop(self):
-        self.ssh_socket.close()
+        logger.info('ssh_thread shutting down')
         if self.chan:
             self.chan.close()
         try:
             _thread.exit()
         except SystemExit:
             pass
-
-def start_server(database):
-    global ssh_server
-    ssh_server = SshThread(database)
-    threading.Thread(target=ssh_server.run).start()
-
-def stop_server():
-    if ssh_server:
-        ssh_server.stop()
