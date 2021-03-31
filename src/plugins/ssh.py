@@ -3,10 +3,14 @@ import sys
 import threading
 from binascii import hexlify
 import paramiko
+from paramiko import SSHClient
 from paramiko.py3compat import u, decodebytes
 import _thread
+import docker
+import time
 
 from src import tables
+from src.one_way_thread import OneWayThread
 from src.logger import logger
 
 class SSHServer(paramiko.ServerInterface):
@@ -22,6 +26,8 @@ class SSHServer(paramiko.ServerInterface):
         self.event = threading.Event()
         self.connection = connection
         self.database = database
+        self.user = None
+        self.password = None
 
     def check_channel_request(self, kind, chanid):
         if kind == "session":
@@ -33,6 +39,8 @@ class SSHServer(paramiko.ServerInterface):
         if username and password:
             login = tables.Credentials(username=username, password=password, \
                 connection=self.connection)
+            self.user = username
+            self.password = password
             self.database.write(login)
 
             return paramiko.AUTH_SUCCESSFUL
@@ -77,16 +85,58 @@ class SSHServer(paramiko.ServerInterface):
 class SshThread(threading.Thread):
     def __init__(self, source, connection, container_config, database):
         super(SshThread, self).__init__()
-        self.client = source
+        self.source = source
         self.connection = connection
+        self.container_config = container_config
         self.chan = None
         self.database = database
+        self.container = None
         self.container_ip = self.container_port = None
+        self.dest = None
+        self.user = self.password = None
+
+    def _connect_to_container(self):
+        self.container_ip = self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
+        logger.debug(self.container_ip)
+
+        ports = self.container.attrs['NetworkSettings']['Ports']
+        assert len(ports) == 1
+
+        for port in ports.keys():
+            self.container_port = int(port.split('/')[0])
+            self.container_protocol = port.split('/')[1]
+        logger.debug(self.container_port)
+        logger.debug(self.container_protocol)
+
+
+        sshClient = SSHClient()
+        sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        sshClient.connect(self.container_ip, port=self.container_port, username=self.user, password=self.password)
+        self.dest = sshClient.get_transport().open_channel("session")
+        self.dest.get_pty()
+        self.dest.invoke_shell()
+        logger.debug(self.dest)
+
+    def _start_and_join_threads(self):
+        logger.debug('Starting thread1')
+        self.thread1 = OneWayThread(self.chan, self.dest, self.connection,
+            self.container_config, 'request', self.database)
+        self.thread1.start()
+
+        logger.debug('Starting thread2')
+        self.thread2 = OneWayThread(self.dest, self.chan, self.connection,
+            self.container_config, 'response', self.database)
+        self.thread2.start()
+
+        logger.debug('Joining thread1')
+        self.thread1.join()
+        logger.debug('Joining thread2')
+        self.thread2.join()
 
     def run(self):
         self.database.write(self.connection)
 
-        transport = paramiko.Transport(self.client)
+        transport = paramiko.Transport(self.source)
         transport.load_server_moduli()
 
         # Experiment with different key sizes at:
@@ -94,17 +144,36 @@ class SshThread(threading.Thread):
         host_key = paramiko.RSAKey(filename="RSAKey.cfg")
         transport.add_server_key(host_key)
 
-
         server = SSHServer(self.connection, self.database)
         transport.start_server(server=server)
 
         self.chan = transport.accept()
         if not self.chan:
             logger.info('no chan')
-            return
+            return            
 
-        # TODO: run shell here
-        self.chan.close()
+        self.user = server.user
+        self.password = server.password
+
+        d_client = docker.from_env()
+        self.container = d_client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True)
+        self.container.reload()
+        self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
+
+        # self.container.exec_run('useradd -m -s /bin/bash '+self.user)
+        # self.container.exec_run('chpasswd '+self.user+':'+self.password)
+        # self.container.exec_run('usermod -aG sudo '+self.user)
+
+        self._connect_to_container()
+        self._start_and_join_threads()
+
+        if self.chan:
+            self.chan.close()
+        
+        logger.info('Stopping: %s', self.container)
+        self.container.stop()
+        logger.info('Removing: %s', self.container)
+        self.container.remove()
 
 
     def stop(self):
