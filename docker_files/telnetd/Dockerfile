@@ -1,37 +1,6 @@
 FROM debian:latest
 EXPOSE 23
 
-<<<<<<< HEAD
-RUN apt-get update && apt-get -y install inetutils-telnetd
-RUN echo 'telnet stream tcp nowait root /usr/sbin/tcpd     /usr/sbin/telnetd' >> /etc/inetd.conf
-RUN useradd admin
-RUN useradd user
-RUN useradd test
-RUN useradd ubuntu
-RUN useradd oracle
-RUN useradd guest
-RUN useradd nagios
-RUN useradd mysql
-RUN useradd tomcat
-RUN useradd administrator
-RUN useradd Administrator
-RUN useradd info
-RUN useradd pi
-RUN useradd ansible
-RUN useradd vagrant
-RUN useradd azureuser
-RUN useradd demo 
-RUN useradd git  
-RUN useradd hadoop
-RUN useradd ts3  
-RUN useradd support
-RUN useradd porstgres
-RUN useradd ubnt
-RUN useradd ftpuser     
-
-RUN sed "s/user_unknown=bad/user_unknown=ignore/g" -i /etc/pam.d/*
-RUN sed  "s/nullok_secure//g" -i /etc/pam.d/*
-=======
 RUN apt-get update && apt-get -y install inetutils-telnetd libpam-script sudo
 
 COPY ./pam_script_auth /usr/share/libpam-script/
@@ -53,7 +22,6 @@ RUN sed "s/use_authtok//g" -i /etc/pam.d/*
 RUN sed "s/try_first_pass//g" -i /etc/pam.d/*
 RUN sed "s/obscure//g" -i /etc/pam.d/*
 RUN sed "s/sha512//g" -i /etc/pam.d/*
->>>>>>> containers
 RUN sed "s/\bpam_.*\.so\b/pam_permit.so/g" -i /etc/pam.d/*
 RUN sed "s/requisite/optional/g" -i /etc/pam.d/*
 RUN sed "s/required/optional/g" -i /etc/pam.d/*

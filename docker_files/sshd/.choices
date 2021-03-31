@@ -5,14 +5,8 @@ docker rm $(docker ps -a -q)
 docker system prune -a
 
 docker rmi $(docker images -a -q)
-<<<<<<< HEAD
-
-docker build -t debian:sshd .
-
-=======
 ---
 docker build -t debian:sshd .
->>>>>>> containers
 docker build --no-cache -t debian:sshd .
 
 docker run --hostname administrative --rm -p 22:22 debian:sshd
