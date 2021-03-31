@@ -87,7 +87,7 @@ class TestChain(unittest.TestCase):
     @patch('src.chain.configs', {'ssh_port': 22, 'lan_subnet': '192.168.0.0/16', 'docker_subnet': '172.17.0.0/16'})
     def test_add_ssh_rules(self):
         proto = 'tcp'
-        port = 22
+        port = '22'
         lan = { \
             'src': '192.168.0.0/16', \
             'dst': '192.168.0.199', \
