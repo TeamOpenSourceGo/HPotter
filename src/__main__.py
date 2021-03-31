@@ -28,6 +28,7 @@ class HP():
     def __init__(self):
         self.listen_threads = []
         self.config = {}
+        self.firewall = {}
         self.database = None
 
     def _read_container_yaml(self, container_file):
@@ -53,6 +54,8 @@ class HP():
             default=['config.yml'])
         parser.add_argument('--container', action='append',
             default=['containers.yml'])
+        parser.add_argument('--firewall', action='append',
+            default=['firewall.yml'])
         args = parser.parse_args()
 
         for config in args.config:
@@ -61,10 +64,18 @@ class HP():
                     self.config.update(yaml.safe_load(config_file))
             except FileNotFoundError as err:
                 print(err)
+        
+        for firewall in args.firewall:
+            try:
+                with open(firewall) as firewall_file:
+                    self.firewall.update(yaml.safe_load(firewall_file))
+            except FileNotFoundError as err:
+                print(err)
 
         self.database = Database(self.config)
         self.database.open()
 
+        chain.configs = self.firewall
         self.add_rules()
 
         for container in args.container:
