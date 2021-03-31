@@ -1,0 +1,3 @@
+#!/bin/bash
+
+sudo /usr/sbin/adduser $PAM_USER --quiet --gecos "user" &> /dev/null

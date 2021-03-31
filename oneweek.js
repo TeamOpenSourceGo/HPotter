@@ -1,4 +1,4 @@
-const url = "http://10.0.0.241:8080/"
+const url = "http://localhost:8080/"
 
 let myMap;
 let myHeatMap;
@@ -35,8 +35,6 @@ function addCustomControls() {
 
   const heatmap = document.getElementById("hp-heatmap");
   myMap.controls[google.maps.ControlPosition.RIGHT_TOP].push(heatmap);
-
-
 }
 
 function addEventListeners() {
@@ -51,8 +49,6 @@ function addEventListeners() {
     }
     fetchLocations(start, end);
   });
-
-
 
   const zoomToBounds = document.getElementById("hp-zoom-to-bounds");
   google.maps.event.addDomListener(zoomToBounds, "click", () => {
@@ -87,12 +83,14 @@ function addPresetDateEvents() {
   }
 }
 
-function myFunction() {
-  var x = document.getElementById("formClass");
-  if (x.style.display === "none") {
-    x.style.display = "block";
+function showHideDateOptions(e) {
+  const $element = document.getElementById("hp-date-form");
+  if ($element.style.display === "none") {
+    e.value = "Close Date";
+    $element.style.display = "";
   } else {
-    x.style.display = "none";
+    e.value = "Select Date";
+    $element.style.display = "none";
   }
 }
 
@@ -107,7 +105,7 @@ function getContentHTML(node) {
   content += "</div>";
   return content;
 }
-
+  
 function createPointMarker(node) {
   let geom = new google.maps.LatLng(node.latitude, node.longitude);
   let marker = new google.maps.Marker({
