@@ -140,7 +140,7 @@ def add_dns_rules():
 
 def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     proto = 'tcp'
-    port = configs.get('ssh_port')
+    port = str(configs.get('ssh_port'))
     subnet = configs.get('lan_subnet', '')
 
     # then allow ssh connection from private ip's
