@@ -15,6 +15,7 @@ from src.logger import logger
 from src import tables
 from src.container_thread import ContainerThread
 from src import chain
+from src.plugins.ssh import SshThread
 
 class ListenThread(threading.Thread):
     ''' Set up the port, listen to it, create a container thread. '''
@@ -38,6 +39,8 @@ class ListenThread(threading.Thread):
         self.listen_address = self.container.get('listen_address', '')
         self.listen_port = self.container['listen_port']
         self.reader = geolite2.reader()
+
+        self.plugins = ['debian:sshd']
 
     # https://stackoverflow.com/questions/27164354/create-a-self-signed-x509-certificate-in-python
     def _gen_cert(self):
@@ -122,6 +125,17 @@ class ListenThread(threading.Thread):
         listen_socket.bind(listen_address)
         return listen_socket
 
+    def plugin(self, source):
+        name = self.container['container']
+
+        if name == 'debian:sshd':
+            thread = SshThread(source, self.connection,
+                self.container, self.database)
+            thread.start()
+        else:
+            logger.info('unknown plugin: ' + name)
+            self.shutdown()
+
     def run(self):
         if self.TLS:
             self._gen_cert()
@@ -148,10 +162,13 @@ class ListenThread(threading.Thread):
                 except Exception as exc:
                     logger.info(exc)
 
-                thread = ContainerThread(source, self.connection,
-                    self.container, self.database)
-                future = executor.submit(thread.start)
-                self.container_list.append((future, thread))
+                if self.container['container'] in self.plugins:
+                    self.plugin(source)
+                else:
+                    thread = ContainerThread(source, self.connection,
+                        self.container, self.database)
+                    future = executor.submit(thread.start)
+                    self.container_list.append((future, thread))
 
         listen_socket.close()
 

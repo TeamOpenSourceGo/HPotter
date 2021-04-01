@@ -3,14 +3,14 @@ import sys
 import threading
 from binascii import hexlify
 import paramiko
+from paramiko import SSHClient
 from paramiko.py3compat import u, decodebytes
 import _thread
+import docker
 
-import hpotter.env
-from hpotter import tables
-from hpotter.logger import logger
-from hpotter.env import write_db, ssh_server
-from hpotter.docker_shell.shell import fake_shell
+from src import tables
+from src.one_way_thread import OneWayThread
+from src.logger import logger
 
 class SSHServer(paramiko.ServerInterface):
     undertest = False
@@ -21,9 +21,12 @@ class SSHServer(paramiko.ServerInterface):
         b"UWT10hcuO4Ks8=")
     good_pub_key = paramiko.RSAKey(data=decodebytes(data))
 
-    def __init__(self, connection):
+    def __init__(self, connection, database):
         self.event = threading.Event()
         self.connection = connection
+        self.database = database
+        self.user = None
+        self.password = None
 
     def check_channel_request(self, kind, chanid):
         if kind == "session":
@@ -35,7 +38,9 @@ class SSHServer(paramiko.ServerInterface):
         if username and password:
             login = tables.Credentials(username=username, password=password, \
                 connection=self.connection)
-            write_db(login)
+            self.user = username
+            self.password = password
+            self.database.write(login)
 
             return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
@@ -77,62 +82,123 @@ class SSHServer(paramiko.ServerInterface):
         return True
 
 class SshThread(threading.Thread):
-    def __init__(self):
+    def __init__(self, source, connection, container_config, database):
         super(SshThread, self).__init__()
-        self.ssh_socket = socket.socket(socket.AF_INET)
-        self.ssh_socket.bind(('0.0.0.0', 22))
-        self.ssh_socket.listen(4)
-        self.chan = None
+        self.source = source
+        self.connection = connection
+        self.container_config = container_config
+        self.database = database
+        self.chan = self.dest = None
+        self.container = None
+        self.user = self.password = None
+        self.thread1 = self.thread2 = None
+
+    def start_paramiko_server(self):
+        transport = paramiko.Transport(self.source)
+        transport.load_server_moduli()
+
+        # Experiment with different key sizes at:
+        # http://travistidwell.com/jsencrypt/demo/
+        host_key = paramiko.RSAKey(filename="RSAKey.cfg")
+        transport.add_server_key(host_key)
+
+        server = SSHServer(self.connection, self.database)
+        transport.start_server(server=server)
+
+        self.chan = transport.accept()
+
+        self.user = server.user
+        self.password = server.password
+
+    def create_container(self):
+        d_client = docker.from_env()
+        self.container = d_client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True, privileged=True)
+        self.container.reload()
+
+        self.container.exec_run('useradd -m -s /bin/bash '+self.user)
+        self.container.exec_run('usermod -aG sudo '+self.user)
+        self.container.exec_run('dd if=/dev/zero count=1 bs=1 of=/pass.txt')
+        self.container.exec_run('sed -i "$ a '+self.password+ '" /pass.txt')
+        self.container.exec_run('sed -i "$ a '+self.password+ '" /pass.txt')
+        self.container.exec_run('sed -i "1 d" pass.txt')
+        self.container.exec_run('/setpasswd '+self.user)
+        self.container.exec_run('rm /pass.txt')
+        self.container.exec_run('rm /setpasswd')
+
+    def _connect_to_container(self):
+        container_ip = self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
+        logger.debug(container_ip)
+
+        ports = self.container.attrs['NetworkSettings']['Ports']
+        assert len(ports) == 1
+
+        for port in ports.keys():
+            container_port = int(port.split('/')[0])
+            container_protocol = port.split('/')[1]
+        logger.debug(container_port)
+        logger.debug(container_protocol)
+
+
+        sshClient = SSHClient()
+        sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            sshClient.connect(container_ip, port=container_port, username=self.user, password=self.password)
+            self.dest = sshClient.get_transport().open_channel("session")
+            self.dest.get_pty()
+            self.dest.invoke_shell()
+
+            logger.debug(self.dest)
+        except:
+            logger.info('unable to connect to ssh container')
+
+    def _start_and_join_threads(self):
+        logger.debug('Starting thread1')
+        self.thread1 = OneWayThread(self.chan, self.dest, self.connection,
+            self.container_config, 'request', self.database)
+        self.thread1.start()
+
+        logger.debug('Starting thread2')
+        self.thread2 = OneWayThread(self.dest, self.chan, self.connection,
+            self.container_config, 'response', self.database)
+        self.thread2.start()
+
+        logger.debug('Joining thread1')
+        self.thread1.join()
+        logger.debug('Joining thread2')
+        self.thread2.join()
 
     def run(self):
-        while True:
-            try:
-                client, addr = self.ssh_socket.accept()
-            except ConnectionAbortedError:
-                break
+        self.database.write(self.connection)
 
-            connection = tables.Connections(
-                sourceIP=addr[0],
-                sourcePort=addr[1],
-                destIP=self.ssh_socket.getsockname()[0],
-                destPort=self.ssh_socket.getsockname()[1],
-                proto=tables.TCP)
-            write_db(connection)
+        self.start_paramiko_server()
+        if not self.chan:
+            logger.info('no chan')
+            return
 
-            transport = paramiko.Transport(client)
-            transport.load_server_moduli()
+        self.create_container()
+        self._connect_to_container()
+        
+        if self.chan and self.dest:
+            self._start_and_join_threads()
+        
+        self._stop_and_remove()
 
-            # Experiment with different key sizes at:
-            # http://travistidwell.com/jsencrypt/demo/
-            host_key = paramiko.RSAKey(filename="RSAKey.cfg")
-            transport.add_server_key(host_key)
-
-
-            server = SSHServer(connection)
-            transport.start_server(server=server)
-
-            self.chan = transport.accept()
-            if not self.chan:
-                logger.info('no chan')
-                continue
-            fake_shell(self.chan, connection, '# ')
-            self.chan.close()
-
-
-    def stop(self):
-        self.ssh_socket.close()
+    def _stop_and_remove(self):
         if self.chan:
             self.chan.close()
-        try:
-            _thread.exit()
-        except SystemExit:
-            pass
+        if self.dest:
+            self.dest.close()
+        
+        logger.debug(str(self.container.logs()))
+        logger.info('Stopping: %s', self.container)
+        self.container.stop()
+        logger.info('Removing: %s', self.container)
+        self.container.remove()
 
-def start_server():
-    global ssh_server
-    ssh_server = SshThread()
-    threading.Thread(target=ssh_server.run).start()
-
-def stop_server():
-    if ssh_server:
-        ssh_server.stop()
+    def shutdown(self):
+        ''' Called to shutdown the one-way threads and stop and remove the
+        container. Called externally in response to a shutdown request. '''
+        self.thread1.shutdown()
+        self.thread2.shutdown()
+        self._stop_and_remove()

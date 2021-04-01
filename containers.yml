@@ -26,11 +26,9 @@ threads: 2
 ---
 container: 'debian:sshd'
 listen_address: '0.0.0.0'
-listen_port: 2200
-key_file: true
+listen_port: 2020
 request_length: 4096
-request_commands: 4
+request_commands: 14
 request_delimiters:
     - '\r\n'
 threads: 2
-

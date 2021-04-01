@@ -46,8 +46,6 @@ class HP():
 
     def startup(self):
         ''' Read the configuration and start the listen threads. '''
-        chain.flush_chains()
-        chain.create_hpotter_chains()
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', action='append',
@@ -76,6 +74,8 @@ class HP():
         self.database.open()
 
         chain.configs = self.firewall
+        chain.flush_chains()
+        chain.create_hpotter_chains()
         self.add_rules()
 
         for container in args.container:
