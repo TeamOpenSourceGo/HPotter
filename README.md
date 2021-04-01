@@ -35,3 +35,6 @@ A list of one or more of the following.
 * database\_password, default: ''
 * database\_host, default: ''
 * database\_port', default: ''
+
+## HPotter features a dynamic set of firewall rules.
+* See "Firewall.md" for more information

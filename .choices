@@ -34,3 +34,7 @@ docker build --no-cache -t debian:telnetd . -f docker_files/telnetd/Dockerfile
 docker save -o debian:telnetd.tar debian:telnetd
 docker load -i debian:telnetd.tar
 docker run -p 23:23 debian:telnetd
+---
+docker build -t debian:sshd . -f docker_files/sshd/Dockerfile
+docker run --hostname administrative --rm -p 22:22 debian:sshd
+

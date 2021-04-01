@@ -84,10 +84,10 @@ class TestChain(unittest.TestCase):
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', r2))
    
     @patch('src.chain.host_ip', '192.168.0.199')
+    @patch('src.chain.configs', {'ssh_port': 22, 'lan_subnet': '192.168.0.0/16', 'docker_subnet': '172.17.0.0/16'})
     def test_add_ssh_rules(self):
         proto = 'tcp'
         port = '22'
-
         lan = { \
             'src': '192.168.0.0/16', \
             'dst': '192.168.0.199', \
@@ -134,7 +134,3 @@ class TestChain(unittest.TestCase):
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_output'))
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_input'))
         self.assertTrue(not iptc.easy.has_chain('filter', 'hpotter_forward'))
-    
-    @patch('src.chain.host_ip', '192.168.0.200')
-    def test_get_host_subnet(self):
-        self.assertEqual('192.168.0.0/16', get_host_subnet())
