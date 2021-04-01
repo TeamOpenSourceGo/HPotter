@@ -158,8 +158,9 @@ class SshThread(threading.Thread):
             logger.info('no chan')
             return
 
+        dns=['1.1.1.1']
         d_client = docker.from_env()
-        self.container = d_client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True)
+        self.container = d_client.containers.run('debian:sshd', dns=dns, detach=True)
         self.container.reload()
 
         # self.container.exec_run('useradd -m -s /bin/bash '+self.user)
