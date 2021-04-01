@@ -7,7 +7,6 @@ from paramiko import SSHClient
 from paramiko.py3compat import u, decodebytes
 import _thread
 import docker
-import time
 
 from src import tables
 from src.one_way_thread import OneWayThread
@@ -88,33 +87,51 @@ class SshThread(threading.Thread):
         self.source = source
         self.connection = connection
         self.container_config = container_config
-        self.chan = None
         self.database = database
+        self.chan = self.dest = None
         self.container = None
-        self.container_ip = self.container_port = None
-        self.dest = None
         self.user = self.password = None
+        self.thread1 = self.thread2 = None
+
+    def start_paramiko_server(self):
+        transport = paramiko.Transport(self.source)
+        transport.load_server_moduli()
+
+        # Experiment with different key sizes at:
+        # http://travistidwell.com/jsencrypt/demo/
+        host_key = paramiko.RSAKey(filename="RSAKey.cfg")
+        transport.add_server_key(host_key)
+
+        server = SSHServer(self.connection, self.database)
+        transport.start_server(server=server)
+
+        self.chan = transport.accept()
+
+        self.user = server.user
+        self.password = server.password
 
     def _connect_to_container(self):
-        self.container_ip = self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
-        logger.debug(self.container_ip)
+        container_ip = self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
+        logger.debug(container_ip)
 
         ports = self.container.attrs['NetworkSettings']['Ports']
         assert len(ports) == 1
 
         for port in ports.keys():
-            self.container_port = int(port.split('/')[0])
-            self.container_protocol = port.split('/')[1]
-        logger.debug(self.container_port)
-        logger.debug(self.container_protocol)
+            container_port = int(port.split('/')[0])
+            container_protocol = port.split('/')[1]
+        logger.debug(container_port)
+        logger.debug(container_protocol)
 
 
         sshClient = SSHClient()
         sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        sshClient.connect(self.container_ip, port=self.container_port, username=self.user, password=self.password)
+        sshClient.connect(container_ip, port=container_port, username=self.user, password=self.password)
+
         self.dest = sshClient.get_transport().open_channel("session")
         self.dest.get_pty()
         self.dest.invoke_shell()
+
         logger.debug(self.dest)
 
     def _start_and_join_threads(self):
@@ -136,29 +153,14 @@ class SshThread(threading.Thread):
     def run(self):
         self.database.write(self.connection)
 
-        transport = paramiko.Transport(self.source)
-        transport.load_server_moduli()
-
-        # Experiment with different key sizes at:
-        # http://travistidwell.com/jsencrypt/demo/
-        host_key = paramiko.RSAKey(filename="RSAKey.cfg")
-        transport.add_server_key(host_key)
-
-        server = SSHServer(self.connection, self.database)
-        transport.start_server(server=server)
-
-        self.chan = transport.accept()
+        self.start_paramiko_server()
         if not self.chan:
             logger.info('no chan')
-            return            
-
-        self.user = server.user
-        self.password = server.password
+            return
 
         d_client = docker.from_env()
         self.container = d_client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True)
         self.container.reload()
-        self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
 
         # self.container.exec_run('useradd -m -s /bin/bash '+self.user)
         # self.container.exec_run('chpasswd '+self.user+':'+self.password)
@@ -166,21 +168,24 @@ class SshThread(threading.Thread):
 
         self._connect_to_container()
         self._start_and_join_threads()
+        
+        self._stop_and_remove()
 
+    def _stop_and_remove(self):
         if self.chan:
             self.chan.close()
+        if self.dest:
+            self.dest.close()
         
+        logger.debug(str(self.container.logs()))
         logger.info('Stopping: %s', self.container)
         self.container.stop()
         logger.info('Removing: %s', self.container)
         self.container.remove()
 
-
-    def stop(self):
-        logger.info('ssh_thread shutting down')
-        if self.chan:
-            self.chan.close()
-        try:
-            _thread.exit()
-        except SystemExit:
-            pass
+    def shutdown(self):
+        ''' Called to shutdown the one-way threads and stop and remove the
+        container. Called externally in response to a shutdown request. '''
+        self.thread1.shutdown()
+        self.thread2.shutdown()
+        self._stop_and_remove()
