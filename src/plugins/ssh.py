@@ -126,13 +126,18 @@ class SshThread(threading.Thread):
 
         sshClient = SSHClient()
         sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        sshClient.connect(container_ip, port=container_port, username=self.user, password=self.password)
 
-        self.dest = sshClient.get_transport().open_channel("session")
-        self.dest.get_pty()
-        self.dest.invoke_shell()
+        try:
+            sshClient.connect(container_ip, port=container_port, username=self.user, password=self.password)
+            self.dest = sshClient.get_transport().open_channel("session")
+            self.dest.get_pty()
+            self.dest.invoke_shell()
 
-        logger.debug(self.dest)
+            logger.debug(self.dest)
+        except:
+            logger.info('unable to connect to ssh container')
+
+
 
     def _start_and_join_threads(self):
         logger.debug('Starting thread1')
@@ -158,9 +163,9 @@ class SshThread(threading.Thread):
             logger.info('no chan')
             return
 
-        dns=['1.1.1.1']
+
         d_client = docker.from_env()
-        self.container = d_client.containers.run('debian:sshd', dns=dns, detach=True)
+        self.container = d_client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True)
         self.container.reload()
 
         # self.container.exec_run('useradd -m -s /bin/bash '+self.user)
@@ -168,7 +173,8 @@ class SshThread(threading.Thread):
         # self.container.exec_run('usermod -aG sudo '+self.user)
 
         self._connect_to_container()
-        self._start_and_join_threads()
+        if self.chan != None and self.dest != None:
+            self._start_and_join_threads()
         
         self._stop_and_remove()
 
