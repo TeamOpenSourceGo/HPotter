@@ -27,7 +27,6 @@ class TestContainer(unittest.TestCase):
         database = unittest.mock.Mock()
 
         ct = ContainerThread(source, connection, {}, database)
-        self.assertEqual(ct.container_gateway, None)
         self.assertEqual(ct.container_ip, None)
         self.assertEqual(ct.container_port, None)
         self.assertEqual(ct.container_protocol, None)
@@ -35,8 +34,6 @@ class TestContainer(unittest.TestCase):
         self.assertEqual(ct.thread1, None)
         self.assertEqual(ct.thread2, None)
         self.assertEqual(ct.container, None)
-        self.assertEqual(ct.to_rule, None)
-        self.assertEqual(ct.from_rule, None)
 
     @patch('logging.Logger.info')
     def test_connect_to_container(self,mock):
