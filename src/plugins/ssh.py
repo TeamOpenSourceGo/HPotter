@@ -110,6 +110,15 @@ class SshThread(threading.Thread):
         self.user = server.user
         self.password = server.password
 
+    def create_container(self):
+        d_client = docker.from_env()
+        self.container = d_client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True)
+        self.container.reload()
+
+        self.container.exec_run('useradd -m -s /bin/bash '+self.user)
+        self.container.exec_run('chpasswd '+self.user+':'+self.password)
+        self.container.exec_run('usermod -aG sudo '+self.user)
+
     def _connect_to_container(self):
         container_ip = self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
         logger.debug(container_ip)
@@ -137,8 +146,6 @@ class SshThread(threading.Thread):
         except:
             logger.info('unable to connect to ssh container')
 
-
-
     def _start_and_join_threads(self):
         logger.debug('Starting thread1')
         self.thread1 = OneWayThread(self.chan, self.dest, self.connection,
@@ -163,17 +170,10 @@ class SshThread(threading.Thread):
             logger.info('no chan')
             return
 
-
-        d_client = docker.from_env()
-        self.container = d_client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True)
-        self.container.reload()
-
-        # self.container.exec_run('useradd -m -s /bin/bash '+self.user)
-        # self.container.exec_run('chpasswd '+self.user+':'+self.password)
-        # self.container.exec_run('usermod -aG sudo '+self.user)
-
+        self.create_container()
         self._connect_to_container()
-        if self.chan != None and self.dest != None:
+        
+        if self.chan and self.dest:
             self._start_and_join_threads()
         
         self._stop_and_remove()
