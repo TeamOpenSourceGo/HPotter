@@ -73,9 +73,16 @@ function addEventListeners() {
 
   const statsBtn = document.getElementById("hp-stats-btn");
   google.maps.event.addDomListener(statsBtn, "click", (e) => {
-    const $container = $(".hp-stats-container");
+    const $container = $("#hp-stats-container");
+    $container.empty();
+    $container.append(createStatsHtml());
     $container.slideToggle();
   });
+}
+
+// TODO: Update the html for the stats here.
+function createStatsHtml() {
+  return "<p>NEED TO ADD AND FORMAT STATS HERE</p>";
 }
 
 function addPresetDateEvents() {
