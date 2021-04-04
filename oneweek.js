@@ -35,6 +35,9 @@ function addCustomControls() {
 
   const heatmap = document.getElementById("hp-heatmap");
   myMap.controls[google.maps.ControlPosition.RIGHT_TOP].push(heatmap);
+
+  const stats = document.getElementById("hp-stats");
+  myMap.controls[google.maps.ControlPosition.RIGHT_TOP].push(stats);
 }
 
 function addEventListeners() {
@@ -68,6 +71,11 @@ function addEventListeners() {
     }
   });
 
+  const statsBtn = document.getElementById("hp-stats-btn");
+  google.maps.event.addDomListener(statsBtn, "click", (e) => {
+    const $container = $(".hp-stats-container");
+    $container.slideToggle();
+  });
 }
 
 function addPresetDateEvents() {
