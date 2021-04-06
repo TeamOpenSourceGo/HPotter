@@ -9,6 +9,7 @@ import _thread
 import docker
 
 from src import tables
+from src.container_thread import ContainerThread
 from src.one_way_thread import OneWayThread
 from src.logger import logger
 
@@ -46,7 +47,7 @@ class SSHServer(paramiko.ServerInterface):
         return paramiko.AUTH_FAILED
 
     def check_auth_publickey(self, username, key):
-        print("Auth attempt with key: " + u(hexlify(key.get_fingerprint())))
+        # print("Auth attempt with key: " + u(hexlify(key.get_fingerprint())))
         if username == 'exit':
             sys.exit(1)
         if(username == "user") and (key == self.good_pub_key):
@@ -81,15 +82,14 @@ class SSHServer(paramiko.ServerInterface):
         pixelwidth, pixelheight, modes):
         return True
 
-class SshThread(threading.Thread):
+class SshThread(ContainerThread):
     def __init__(self, source, connection, container_config, database):
-        super(SshThread, self).__init__()
+        super().__init__(source, connection, container_config, database)
         self.source = source
+        self.dest = None
         self.connection = connection
         self.container_config = container_config
         self.database = database
-        self.chan = self.dest = None
-        self.container = None
         self.user = self.password = None
         self.thread1 = self.thread2 = None
 
@@ -105,14 +105,14 @@ class SshThread(threading.Thread):
         server = SSHServer(self.connection, self.database)
         transport.start_server(server=server)
 
-        self.chan = transport.accept()
+        self.source = transport.accept()
 
         self.user = server.user
         self.password = server.password
 
     def create_container(self):
-        d_client = docker.from_env()
-        self.container = d_client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True, privileged=True)
+        client = docker.from_env()
+        self.container = client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True, privileged=True)
         self.container.reload()
 
         self.container.exec_run('useradd -m -s /bin/bash '+self.user)
@@ -126,24 +126,24 @@ class SshThread(threading.Thread):
         self.container.exec_run('rm /setpasswd')
 
     def _connect_to_container(self):
-        container_ip = self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
-        logger.debug(container_ip)
+        self.container_ip = self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
+        logger.debug(self.container_ip)
 
         ports = self.container.attrs['NetworkSettings']['Ports']
         assert len(ports) == 1
 
         for port in ports.keys():
-            container_port = int(port.split('/')[0])
-            container_protocol = port.split('/')[1]
-        logger.debug(container_port)
-        logger.debug(container_protocol)
+            self.container_port = int(port.split('/')[0])
+            self.container_protocol = port.split('/')[1]
+        logger.debug(self.container_port)
+        logger.debug(self.container_protocol)
 
 
         sshClient = SSHClient()
         sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            sshClient.connect(container_ip, port=container_port, username=self.user, password=self.password)
+            sshClient.connect(self.container_ip, port=self.container_port, username=self.user, password=self.password)
             self.dest = sshClient.get_transport().open_channel("session")
             self.dest.get_pty()
             self.dest.invoke_shell()
@@ -152,41 +152,37 @@ class SshThread(threading.Thread):
         except:
             logger.info('unable to connect to ssh container')
 
-    def _start_and_join_threads(self):
-        logger.debug('Starting thread1')
-        self.thread1 = OneWayThread(self.chan, self.dest, self.connection,
-            self.container_config, 'request', self.database)
-        self.thread1.start()
-
-        logger.debug('Starting thread2')
-        self.thread2 = OneWayThread(self.dest, self.chan, self.connection,
-            self.container_config, 'response', self.database)
-        self.thread2.start()
-
-        logger.debug('Joining thread1')
-        self.thread1.join()
-        logger.debug('Joining thread2')
-        self.thread2.join()
-
     def run(self):
         self.database.write(self.connection)
 
         self.start_paramiko_server()
-        if not self.chan:
+        if not self.source:
             logger.info('no chan')
             return
 
-        self.create_container()
-        self._connect_to_container()
+        try:
+            self.create_container()
+            logger.info('Started: %s', self.container)
+            self.container.reload()
+        except Exception as err:
+            logger.info(err)
+            return
+
+        try:
+            self._connect_to_container()
+        except Exception as err:
+            logger.info(err)
+            self._stop_and_remove()
+            return
         
-        if self.chan and self.dest:
+        if self.source and self.dest:
             self._start_and_join_threads()
         
         self._stop_and_remove()
 
     def _stop_and_remove(self):
-        if self.chan:
-            self.chan.close()
+        if self.source:
+            self.source.close()
         if self.dest:
             self.dest.close()
         
