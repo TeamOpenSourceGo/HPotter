@@ -86,26 +86,24 @@ class SshThread(ContainerThread):
     def __init__(self, source, connection, container_config, database):
         super().__init__(source, connection, container_config, database)
         self.source = source
-        self.dest = None
         self.connection = connection
         self.container_config = container_config
         self.database = database
-        self.user = self.password = None
-        self.thread1 = self.thread2 = None
+        self.transport = self.sshClient = self.user = self.password = None
 
     def start_paramiko_server(self):
-        transport = paramiko.Transport(self.source)
-        transport.load_server_moduli()
+        self.transport = paramiko.Transport(self.source)
+        self.transport.load_server_moduli()
 
         # Experiment with different key sizes at:
         # http://travistidwell.com/jsencrypt/demo/
         host_key = paramiko.RSAKey(filename="RSAKey.cfg")
-        transport.add_server_key(host_key)
+        self.transport.add_server_key(host_key)
 
         server = SSHServer(self.connection, self.database)
-        transport.start_server(server=server)
+        self.transport.start_server(server=server)
 
-        self.source = transport.accept()
+        self.source = self.transport.accept()
 
         self.user = server.user
         self.password = server.password
@@ -139,18 +137,15 @@ class SshThread(ContainerThread):
         logger.debug(self.container_protocol)
 
 
-        sshClient = SSHClient()
-        sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.sshClient = SSHClient()
+        self.sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        try:
-            sshClient.connect(self.container_ip, port=self.container_port, username=self.user, password=self.password)
-            self.dest = sshClient.get_transport().open_channel("session")
-            self.dest.get_pty()
-            self.dest.invoke_shell()
+        self.sshClient.connect(self.container_ip, port=self.container_port, username=self.user, password=self.password)
+        self.dest = self.sshClient.get_transport().open_session()
+        self.dest.get_pty()
+        self.dest.invoke_shell()
 
-            logger.debug(self.dest)
-        except:
-            logger.info('unable to connect to ssh container')
+        logger.debug(self.dest)
 
     def run(self):
         self.database.write(self.connection)
@@ -163,8 +158,8 @@ class SshThread(ContainerThread):
         try:
             self.create_container()
             logger.info('Started: %s', self.container)
-            self.container.reload()
         except Exception as err:
+            self._stop_and_remove()
             logger.info(err)
             return
 
@@ -181,10 +176,10 @@ class SshThread(ContainerThread):
         self._stop_and_remove()
 
     def _stop_and_remove(self):
-        if self.source:
-            self.source.close()
-        if self.dest:
-            self.dest.close()
+        if self.transport:
+            self.transport.close()
+        if self.sshClient:
+            self.sshClient.close()
         
         logger.debug(str(self.container.logs()))
         logger.info('Stopping: %s', self.container)
