@@ -48,8 +48,6 @@ class SSHServer(paramiko.ServerInterface):
 
     def check_auth_publickey(self, username, key):
         # print("Auth attempt with key: " + u(hexlify(key.get_fingerprint())))
-        if username == 'exit':
-            sys.exit(1)
         if(username == "user") and (key == self.good_pub_key):
             return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
@@ -113,6 +111,7 @@ class SshThread(ContainerThread):
         self.container = client.containers.run('debian:sshd', dns=['1.1.1.1'], detach=True, privileged=True)
         self.container.reload()
 
+        # create a user, set its password, and give it sudo
         self.container.exec_run('useradd -m -s /bin/bash '+self.user)
         self.container.exec_run('usermod -aG sudo '+self.user)
         self.container.exec_run('dd if=/dev/zero count=1 bs=1 of=/pass.txt')
@@ -152,6 +151,7 @@ class SshThread(ContainerThread):
 
         self.start_paramiko_server()
         if not self.source:
+            self.transport.close()
             logger.info('no chan')
             return
 
