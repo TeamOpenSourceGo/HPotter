@@ -10,7 +10,6 @@ import socket
 import threading
 import time
 import paramiko
-import sys
 
 class TestSSH(unittest.TestCase):
 
@@ -29,6 +28,12 @@ class TestSSH(unittest.TestCase):
         transport.open_session()
 
         time.sleep(3)
+
+        self.assertEqual(ssh.connection, connection)
+        self.assertEqual(ssh.database, database)
+        self.assertEqual(ssh.container_config, container)
+        self.assertEqual(ssh.user, 'root')
+        self.assertEqual(ssh.password, 'toor')
 
         source.close()
         dest.close()

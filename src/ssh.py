@@ -114,10 +114,16 @@ class SshThread(ContainerThread):
         # create a user, set its password, and give it sudo
         self.container.exec_run('useradd -m -s /bin/bash '+self.user)
         self.container.exec_run('usermod -aG sudo '+self.user)
+
+        # this creates a file with the password written to a file twice, once on each line. E.g.
+        # password1234
+        # passwrod1234
         self.container.exec_run('dd if=/dev/zero count=1 bs=1 of=/pass.txt')
         self.container.exec_run('sed -i "$ a '+self.password+ '" /pass.txt')
         self.container.exec_run('sed -i "$ a '+self.password+ '" /pass.txt')
         self.container.exec_run('sed -i "1 d" pass.txt')
+
+        # this script is build in the docker_files/sshd/Dockerfile
         self.container.exec_run('/setpasswd '+self.user)
         self.container.exec_run('rm /pass.txt')
         self.container.exec_run('rm /setpasswd')
