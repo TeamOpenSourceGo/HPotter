@@ -3,6 +3,8 @@ const url = "http://localhost:8080/"
 let myMap;
 let myHeatMap;
 let iw;
+let startStat;
+let endStat;
 let myMarkers = [];
 let myMarkerClusterer;
 let script = document.createElement('script');
@@ -82,7 +84,12 @@ function addEventListeners() {
 
 // TODO: Update the html for the stats here.
 function createStatsHtml() {
-  return "<p>NEED TO ADD AND FORMAT STATS HERE</p>";
+
+  return "<p>Number of points in range</p>"+ startStat + endStat + myMarkers.length;
+}
+
+function length(obj) {
+  return Object.keys(obj).length;
 }
 
 function addPresetDateEvents() {
@@ -93,6 +100,8 @@ function addPresetDateEvents() {
   
       const today = new Date();
       const from = moment().subtract(1, e.target.value);
+      startStat = today;
+      endStat = from;
       fetchLocations(from, today);
     });
   }
