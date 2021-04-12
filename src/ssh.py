@@ -155,10 +155,15 @@ class SshThread(ContainerThread):
     def run(self):
         self.database.write(self.connection)
 
-        self.start_paramiko_server()
-        if not self.source:
+        try:
+            self.start_paramiko_server()
+            if not self.source:
+                self.transport.close()
+                logger.info('no chan')
+                return
+        except:
             self.transport.close()
-            logger.info('no chan')
+            logger.info('Negotiation failed')
             return
 
         try:
