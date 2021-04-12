@@ -82,10 +82,9 @@ function addEventListeners() {
   });
 }
 
-// TODO: Update the html for the stats here.
 function createStatsHtml() {
 
-  return "<p>Number of points in range</p>"+ startStat + endStat + myMarkers.length;
+  return "<p>Number of points in range</p>" + myMarkers.length + "<p>       </p>" +endStat + "<p>  through   </p>"+ startStat;
 }
 
 function length(obj) {
@@ -101,7 +100,7 @@ function addPresetDateEvents() {
       const today = new Date();
       const from = moment().subtract(1, e.target.value);
       startStat = today;
-      endStat = from;
+      endStat = moment(from).format("DD MMM YYYY hh:mm a");
       fetchLocations(from, today);
     });
   }
