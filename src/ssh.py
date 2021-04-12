@@ -59,8 +59,8 @@ class SSHServer(paramiko.ServerInterface):
         return paramiko.AUTH_FAILED
 
     def check_auth_gssapi_keyex(self, username, \
-        gss_authenticated=paramiko.AUTH_FAILED, cc_file=None):
-        if gss_authenticated == paramiko.AUTH_SUCCESSFUL:
+        gss_auth=paramiko.AUTH_FAILED, cc_file=None):
+        if gss_auth == paramiko.AUTH_SUCCESSFUL:
             return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
 
@@ -161,7 +161,7 @@ class SshThread(ContainerThread):
                 self.transport.close()
                 logger.info('no chan')
                 return
-        except:
+        except Exception as err:
             self.transport.close()
             logger.info('Negotiation failed')
             return
