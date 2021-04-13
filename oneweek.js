@@ -1,4 +1,4 @@
-const url = "http://localhost:8080/"
+const url = "http://192.168.0.7:8080/"
 
 let myMap;
 let myHeatMap;
@@ -8,7 +8,7 @@ let endStat;
 let myMarkers = [];
 let myMarkerClusterer;
 let script = document.createElement('script');
-script.src = "https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE&libraries=visualization&callback=initMap"
+script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyA0P5XjTSHj7t2nmNL7_x8d5TGaxQYse4s&libraries=visualization&callback=initMap"
 script.async = true;
 
 function initMap() {
@@ -76,15 +76,34 @@ function addEventListeners() {
   const statsBtn = document.getElementById("hp-stats-btn");
   google.maps.event.addDomListener(statsBtn, "click", (e) => {
     const $container = $("#hp-stats-container");
-    $container.empty();
-    $container.append(createStatsHtml());
     $container.slideToggle();
   });
 }
 
-function createStatsHtml() {
+function updateStatsContainer(edges) {
 
-  return "<p>Number of points in range</p>" + myMarkers.length + "<p>       </p>" +endStat + "<p>  through   </p>"+ startStat;
+  const srcAddresses = edges.map((e) => e.node.sourceAddress);
+  const uniqSrcAddr = [...new Set(srcAddresses)];
+
+  const $container = $("#hp-stats-container");
+  $container.empty();
+  $container.append(createStatsHtml(uniqSrcAddr));
+}
+
+function createStatsHtml(srcAddresses) {
+  const dateString = endStat ? `${endStat} to ${startStat}` : "All time";
+  return `
+    <div class="stats-header-container" style="text-align: center;">
+      <h2>HPotter Statistics</h2>
+    </div>
+    <hr class="solid">
+    <ul style="list-style-type: none; font-size: 14px;">
+      <li><strong>Date Range:</strong> ${dateString}</li>
+      <br>
+      <li><strong>Data Hits:</strong> ${myMarkers.length}</li>
+      <br>
+      <li><strong>Number of Unique Source Addresses:</strong> ${srcAddresses.length}</li>
+    </ul>`;
 }
 
 function length(obj) {
@@ -99,8 +118,8 @@ function addPresetDateEvents() {
   
       const today = new Date();
       const from = moment().subtract(1, e.target.value);
-      startStat = today;
-      endStat = moment(from).format("DD MMM YYYY hh:mm a");
+      startStat = moment(today).format("DD MMM YYYY");
+      endStat = from.format("DD MMM YYYY");
       fetchLocations(from, today);
     });
   }
@@ -210,6 +229,7 @@ function process(data, startDate, endDate) {
 
       myMarkerClusterer = new MarkerClusterer(myMap, myMarkers, properties);
     }
+    updateStatsContainer(edges);
   }
 }
 
@@ -250,7 +270,7 @@ function fetchLocations(startDate, endDate) {
     })
     .then(resp => {
       if(resp && resp.data) {
-        process(resp.data, startDate, endDate); 
+        process(resp.data, startDate, endDate);
       } else {
         console.log("Failed to load data from server.");
       } 
