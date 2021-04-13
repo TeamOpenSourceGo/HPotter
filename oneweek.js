@@ -1,4 +1,4 @@
-const url = "http://192.168.0.7:8080/"
+const url = "http://localhost:8080/"
 
 let myMap;
 let myHeatMap;
@@ -8,7 +8,7 @@ let endStat;
 let myMarkers = [];
 let myMarkerClusterer;
 let script = document.createElement('script');
-script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyA0P5XjTSHj7t2nmNL7_x8d5TGaxQYse4s&libraries=visualization&callback=initMap"
+script.src = "https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE&libraries=visualization&callback=initMap"
 script.async = true;
 
 function initMap() {
