@@ -15,6 +15,7 @@ from src.logger import logger
 from src import tables
 from src.container_thread import ContainerThread
 from src import chain
+from src.ssh import SshThread
 
 class ListenThread(threading.Thread):
     ''' Set up the port, listen to it, create a container thread. '''
@@ -148,8 +149,10 @@ class ListenThread(threading.Thread):
                 except Exception as exc:
                     logger.info(exc)
 
-                thread = ContainerThread(source, self.connection,
-                    self.container, self.database)
+                thread = ContainerThread(source, self.connection, self.container, self.database) \
+                    if self.container['container'] != 'debian:sshd' else \
+                         SshThread(source, self.connection, self.container, self.database)
+
                 future = executor.submit(thread.start)
                 self.container_list.append((future, thread))
 
