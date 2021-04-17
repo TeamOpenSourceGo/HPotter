@@ -1,4 +1,5 @@
 const url = "http://localhost:8080/"
+const apiKey = "YOURKEYHERE";
 
 let myMap;
 let myHeatMap;
@@ -8,7 +9,7 @@ let endStat;
 let myMarkers = [];
 let myMarkerClusterer;
 let script = document.createElement('script');
-script.src = "https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE&libraries=visualization&callback=initMap"
+script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=visualization&callback=initMap`;
 script.async = true;
 
 function initMap() {
@@ -81,33 +82,67 @@ function addEventListeners() {
 }
 
 function updateStatsContainer(edges) {
-
-  const srcAddresses = edges.map((e) => e.node.sourceAddress);
+  const nodes = edges.map((e) => e.node);
+  const srcAddresses = nodes.map((node) => node.sourceAddress);
   const uniqSrcAddr = [...new Set(srcAddresses)];
 
   const $container = $("#hp-stats-container");
   $container.empty();
-  $container.append(createStatsHtml(uniqSrcAddr));
+  $container.append(createStatsHtml(nodes, uniqSrcAddr));
+  initializeTable();
 }
 
-function createStatsHtml(srcAddresses) {
+function initializeTable() {
+  $('#stats-table').DataTable({
+    "bLengthChange": false,
+  });
+}
+
+function createStatsHtml(nodes, srcAddresses) {
+  let tableRowsHtml = "";
+  nodes.forEach((node) => tableRowsHtml += 
+    `<tr>
+      <td>${node.createdAt}</td>
+      <td>${node.latitude}</td>
+      <td>${node.longitude}</td>
+      <td>${node.sourceAddress}</td>
+      <td>${node.sourcePort}</td>
+      <td>${node.destinationAddress}</td>
+      <td>${node.destinationPort}</td>
+    </tr>`);
+
   const dateString = endStat ? `${endStat} to ${startStat}` : "All time";
   return `
     <div class="stats-header-container" style="text-align: center;">
       <h2>HPotter Statistics</h2>
     </div>
     <hr class="solid">
-    <ul style="list-style-type: none; font-size: 14px;">
-      <li><strong>Date Range:</strong> ${dateString}</li>
-      <br>
-      <li><strong>Data Hits:</strong> ${myMarkers.length}</li>
-      <br>
-      <li><strong>Number of Unique Source Addresses:</strong> ${srcAddresses.length}</li>
-    </ul>`;
-}
-
-function length(obj) {
-  return Object.keys(obj).length;
+    <div class="top-container">
+      <ul style="list-style-type: none; font-size: 14px;">
+        <li><strong>Date Range:</strong> ${dateString}</li>
+        <br>
+        <li><strong>Data Hits:</strong> ${myMarkers.length}</li>
+        <br>
+        <li><strong>Number of Unique Source Addresses:</strong> ${srcAddresses.length}</li>
+      </ul>
+    </div>
+    <hr class="solid">
+    <div class="bottom-container">
+      <table id="stats-table" class="stripe cell-border" width="100%">
+        <thead>
+          <tr>
+            <th>Created Date</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+            <th>Source Address</th>
+            <th>Source Port</th>
+            <th>Destination Address</th>
+            <th>Destination Port</th>
+          </tr>
+        </thead>
+        <tbody>${tableRowsHtml}</tbody>
+      </table>
+    </div>`;
 }
 
 function addPresetDateEvents() {
