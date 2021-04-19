@@ -157,11 +157,9 @@ class TestChain(unittest.TestCase):
 #
 #        cont_mock.to_rule = rule_t
 #        cont_mock.from_rule = rule_f
-#        cont_mock.drop_rule = drop
 #        delete_container_rules(cont_mock)
 #        self.assertTrue(not iptc.easy.has_rule('filter', 'hpotter_output', rule_t) )
 #        self.assertTrue(not iptc.easy.has_rule('filter', 'hpotter_input', rule_f) )
-#        self.assertTrue(not iptc.easy.has_rule('filter', 'hpotter_input', drop) )
 
     def test_flush(self):
         flush_chains()
