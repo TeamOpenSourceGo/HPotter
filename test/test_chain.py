@@ -126,6 +126,43 @@ class TestChain(unittest.TestCase):
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_forward', resolv1))
         self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_forward', resolv2))
     
+#def test_create_container_rules(self):
+#        cont_mock = unittest.mock.Mock()
+#        cont_mock.container_protocol = 'tcp'
+#        cont_mock.container_gateway = "71.88.115.9"
+#        cont_mock.container_ip = "192.188.72.83"
+#        cont_mock.container_port = 202
+#        create_container_rules(cont_mock)
+#        source = cont_mock.container_gateway
+#        dest = cont_mock.container_ip
+#        proto = cont_mock.container_protocol
+#        port = str(cont_mock.container_port)
+#        rule_t = { \
+#                'src': source, \
+#                'dst': dest, \
+#                'target': 'ACCEPT', \
+#                'protocol': proto, \
+#                proto: {'dport': port} \
+#        }
+#        rule_f = { \
+#                'src': dest, \
+#                'dst': source, \
+#                'target': 'ACCEPT', \
+#                'protocol': proto, \
+#                proto: {'sport': port} \
+#        }
+#    
+#        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_output', rule_t) )
+#        self.assertTrue(iptc.easy.has_rule('filter', 'hpotter_input', rule_f) )
+#
+#        cont_mock.to_rule = rule_t
+#        cont_mock.from_rule = rule_f
+#        cont_mock.drop_rule = drop
+#        delete_container_rules(cont_mock)
+#        self.assertTrue(not iptc.easy.has_rule('filter', 'hpotter_output', rule_t) )
+#        self.assertTrue(not iptc.easy.has_rule('filter', 'hpotter_input', rule_f) )
+#        self.assertTrue(not iptc.easy.has_rule('filter', 'hpotter_input', drop) )
+
     def test_flush(self):
         flush_chains()
         for chain in builtin_chains:
