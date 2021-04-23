@@ -165,15 +165,50 @@ def add_ssh_rules(): #allow LAN/LocalHost IPs, reject all others
     logger.debug(local_d)
     iptc.easy.insert_rule('filter', 'hpotter_input', local_d)
 
-def add_docker_rules():
-    network = configs.get('docker_subnet', '')
-    d_rule = { \
-        'src': network, \
-        'dst': network, \
-        'target': 'ACCEPT' \
+def create_container_rules(obj):
+    thread_lock.acquire()
+    proto = obj.container_protocol.lower()
+    source_addr = obj.container_gateway
+    dest_addr = obj.container_ip
+    dstport = str(obj.container_port)
+    obj.to_rule = { \
+            'src': source_addr, \
+            'dst': dest_addr, \
+            'target': 'ACCEPT', \
+            'protocol': proto, \
+            proto: {'dport': dstport} \
     }
-    iptc.easy.insert_rule('filter', 'hpotter_input', d_rule)
-    iptc.easy.insert_rule('filter', 'hpotter_output', d_rule)
+    logger.debug(obj.to_rule)
+    try:
+        iptc.easy.insert_rule('filter', 'hpotter_output', obj.to_rule)
+    except Exception as err:
+        logger.debug(error)
+        pass
+    
+    obj.from_rule = { \
+            'src': dest_addr, \
+            'dst': source_addr, \
+            'target': 'ACCEPT', \
+            'protocol': proto, \
+            proto: {'sport': dstport} \
+    }
+    logger.debug(obj.from_rule)
+    try:
+        iptc.easy.insert_rule('filter', 'hpotter_input', obj.from_rule)
+    except Exception as err:
+        logger.debug(err)
+        pass
+    thread_lock.release()
+
+def delete_container_rules(obj):
+    thread_lock.acquire()
+
+    logger.debug('Removing rules')
+
+    iptc.easy.delete_rule('filter', "hpotter_output", obj.to_rule)
+    iptc.easy.delete_rule('filter', "hpotter_input", obj.from_rule)
+
+    thread_lock.release()
 
 def get_host_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

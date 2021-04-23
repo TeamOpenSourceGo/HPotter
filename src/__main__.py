@@ -42,7 +42,6 @@ class HP():
         chain.add_connection_rules()
         chain.add_dns_rules()
         chain.add_ssh_rules()
-        chain.add_docker_rules()
 
     def startup(self):
         ''' Read the configuration and start the listen threads. '''

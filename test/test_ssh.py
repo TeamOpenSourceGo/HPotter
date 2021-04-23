@@ -1,9 +1,11 @@
 from socket import timeout
 import unittest
+import warnings
 from unittest.mock import call, patch
 
 from src.ssh import SSHServer
 from src.ssh import SshThread
+from src import chain
 
 import docker
 import socket
@@ -12,6 +14,9 @@ import time
 import paramiko
 
 class TestSSH(unittest.TestCase):
+
+    def setup(self):
+        warnings.simplefilter('ignore', category=ResourceWarning)
 
     def test_ssh(self):
         container = {'container': 'debian:sshd', 'listen_address': '0.0.0.0', 'listen_port': 2020, 'request_length': 4096, 'request_commands': 14, 'request_delimiters': ['\\r\\n'], 'threads': 2}
