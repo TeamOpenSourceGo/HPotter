@@ -22,6 +22,7 @@ function initMap() {
     markersWontHide: true,
     basicFormatEvents: true
   });
+
   fetchLocations();
   addCustomControls();
   addEventListeners();
@@ -50,10 +51,10 @@ function addEventListeners() {
     let start = document.getElementById("startDate").value;
     let end = document.getElementById("endDate").value;
     if(start && end) {
-      start = moment(start, "YYYY-MM-DD");
-      end = moment(end, "YYYY-MM-DD");
+      startStat = moment(start, "YYYY-MM-DD").format("DD MMM YYYY");
+      endStat = moment(end, "YYYY-MM-DD").format("DD MMM YYYY");
     }
-    fetchLocations(start, end);
+    fetchLocations(startStat, endStat);
   });
 
   const zoomToBounds = document.getElementById("hp-zoom-to-bounds");
@@ -111,7 +112,7 @@ function createStatsHtml(nodes, srcAddresses) {
       <td>${node.destinationPort}</td>
     </tr>`);
 
-  const dateString = endStat ? `${endStat} to ${startStat}` : "All time";
+  const dateString = endStat ? `${startStat} to ${endStat}` : "All time";
   return `
     <div class="stats-header-container" style="text-align: center;">
       <h2>HPotter Statistics</h2>
@@ -153,8 +154,8 @@ function addPresetDateEvents() {
   
       const today = new Date();
       const from = moment().subtract(1, e.target.value);
-      startStat = moment(today).format("DD MMM YYYY");
-      endStat = from.format("DD MMM YYYY");
+      endStat = moment(today).format("DD MMM YYYY");
+      startStat = from.format("DD MMM YYYY");
       fetchLocations(from, today);
     });
   }
