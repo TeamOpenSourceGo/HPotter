@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import mock_open, call, patch
 from src.__main__ import HP, GracefulKiller
+from src.udp_thread import UDPThread
 
 class TestMain(unittest.TestCase):
     def setup(self):
@@ -13,6 +14,7 @@ class TestMain(unittest.TestCase):
         hp = HP()
         hp.startup()
         info_mock.assert_any_call('Creating SSL configuration files')
+        UDPThread.shutdown(self)
         hp.shutdown()
     
     @patch('logging.Logger.info')

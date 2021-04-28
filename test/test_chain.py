@@ -34,6 +34,7 @@ class TestChain(unittest.TestCase):
         thread_mock = unittest.mock.Mock()
         thread_mock.listen_address = '192.168.12.15'
         thread_mock.listen_port = 33000
+        thread_mock.container = {'container': 'httpd:latest', 'listen_address': '0.0.0.0','listen_port': '443','request_length': '4096','TLS': 'true','threads': '2'}
         create_listen_rules(thread_mock)
         proto = 'tcp'
         rule_i = { \

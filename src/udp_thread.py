@@ -40,6 +40,7 @@ class UDPThread(threading.Thread):
 
     def _fetch_container_attributes(self):
         nwsettings = self.bindd.attrs['NetworkSettings']
+        self.container_gateway = nwsettings['Networks']['bridge']['Gateway']
         self.container_ip = nwsettings['Networks']['bridge']['IPAddress']
         logger.debug(self.container_ip)
 
@@ -51,6 +52,8 @@ class UDPThread(threading.Thread):
             self.container_protocol = port.split('/')[1]
         logger.debug(self.container_port)
         logger.debug(self.container_protocol)
+
+        chain.create_container_rules(self)
 
     def _save_connection(self, address):
         latitude = None
@@ -86,7 +89,6 @@ class UDPThread(threading.Thread):
 
     def _listen_to_queries(self):
         listen_socket = self._create_socket()
-
         while True:
             try:
                 message = query.receive_udp(listen_socket)
@@ -101,8 +103,9 @@ class UDPThread(threading.Thread):
                     break
                 continue
             except Exception as exc:
-                logger.debug(exc)  
-        
+                logger.debug(exc)
+            
+        chain.delete_container_rules(self)
         listen_socket.close()
 
     def _send_to_container(self, message):
