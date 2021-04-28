@@ -102,6 +102,8 @@ class UDPThread(threading.Thread):
                 continue
             except Exception as exc:
                 logger.debug(exc)  
+        
+        listen_socket.close()
 
     def _send_to_container(self, message):
         try:

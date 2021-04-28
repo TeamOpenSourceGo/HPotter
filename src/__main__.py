@@ -6,6 +6,7 @@ import yaml
 
 from src.logger import logger
 from src.listen_thread import ListenThread
+from src.udp_thread import UDPThread
 from src.database import Database
 from src import chain
 
