@@ -11,6 +11,7 @@ import docker
 from src import tables
 from src.container_thread import ContainerThread
 from src.one_way_thread import OneWayThread
+from src import chain
 from src.logger import logger
 
 class SSHServer(paramiko.ServerInterface):
@@ -122,6 +123,7 @@ class SshThread(ContainerThread):
 
     def _connect_to_container(self):
         self.container_ip = self.container.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
+        self.container_gateway = self.container.attrs['NetworkSettings']['Networks']['bridge']['Gateway']
         logger.debug(self.container_ip)
 
         ports = self.container.attrs['NetworkSettings']['Ports']
@@ -133,6 +135,7 @@ class SshThread(ContainerThread):
         logger.debug(self.container_port)
         logger.debug(self.container_protocol)
 
+        chain.create_container_rules(self)
 
         self.sshClient = SSHClient()
         self.sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -175,6 +178,8 @@ class SshThread(ContainerThread):
         
         if self.source and self.dest:
             self._start_and_join_threads()
+
+        chain.delete_container_rules(self)
         
         self._stop_and_remove()
 
