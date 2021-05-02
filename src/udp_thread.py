@@ -96,7 +96,7 @@ class UDPThread(ListenThread, threading.Thread):
         chain.create_listen_rules(self)
         try:
             client = docker.from_env()
-            self.bindd = client.containers.run(self.container['container'], Name = 'BIND9',
+            self.bindd = client.containers.run(self.container['container'],
                             restart_policy={"Name":"always"}, read_only=True, detach=True)
             logger.info('BINDD container started: %s', self.bindd)
             self.bindd.reload()
