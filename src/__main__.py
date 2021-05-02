@@ -6,6 +6,7 @@ import yaml
 
 from src.logger import logger
 from src.listen_thread import ListenThread
+from src.udp_thread import UDPThread
 from src.database import Database
 from src import chain
 
@@ -33,7 +34,10 @@ class HP():
 
     def _read_container_yaml(self, container_file):
         for container in yaml.safe_load_all(container_file):
-            thread = ListenThread(container, self.database)
+            if 'UDP' in container:
+                thread = UDPThread(container, self.database)
+            else:
+                thread = ListenThread(container, self.database)
             self.listen_threads.append(thread)
             thread.start()
 

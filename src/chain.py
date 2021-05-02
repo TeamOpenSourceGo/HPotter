@@ -22,6 +22,8 @@ def create_listen_rules(obj):
         listen_address = '0.0.0.0/0'
 
     proto = "tcp"
+    if 'UDP' in obj.container:
+        proto = "udp"
 
     obj.to_rule = { \
         'dst': listen_address, \

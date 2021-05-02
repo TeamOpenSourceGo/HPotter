@@ -8,3 +8,4 @@ pyOpenSSL
 pyyaml
 python-iptables
 maxminddb-geolite2
+dnspython
