@@ -9,16 +9,17 @@ from geolite2 import geolite2
 from dns import query
 
 from src.logger import logger
+from src.listen_thread import ListenThread
 from src import tables
 from src import chain
 from src.lazy_init import lazy_init
 
-class UDPThread(threading.Thread):
+class UDPThread(ListenThread, threading.Thread):
     ''' The thread that gets created in listen_thread. '''
     # pylint: disable=E1101, W0613
     @lazy_init
     def __init__(self, container, database):
-        super().__init__()
+        super().__init__(container, database)
         self.container_gateway = self.container_ip = self.container_port = self.container_protocol = None
         self.connection = self.bindd = None
         self.listen_address = self.container.get('listen_address', '')
@@ -42,7 +43,6 @@ class UDPThread(threading.Thread):
         nwsettings = self.bindd.attrs['NetworkSettings']
         self.container_gateway = nwsettings['Networks']['bridge']['Gateway']
         self.container_ip = nwsettings['Networks']['bridge']['IPAddress']
-        logger.debug(self.container_ip)
 
         ports = nwsettings['Ports']
         assert len(ports) == 1
@@ -50,42 +50,10 @@ class UDPThread(threading.Thread):
         for port in ports.keys():
             self.container_port = int(port.split('/')[0])
             self.container_protocol = port.split('/')[1]
+        logger.debug(self.container_ip)
         logger.debug(self.container_port)
         logger.debug(self.container_protocol)
-
         chain.create_container_rules(self)
-
-    def _save_connection(self, address):
-        latitude = None
-        longitude = None
-
-        info = self.reader.get(address[0])
-        if info and 'location' in info:
-            location = info['location']
-            if 'latitude' in location and 'longitude' in location:
-                latitude = str(location['latitude'])
-                longitude = str(location['longitude'])
-
-        if 'save_destination' in self.container:
-            self.connection = tables.Connections(
-                destination_address = self.listen_address,
-                destination_port = self.listen_port,
-                source_address = address[0],
-                source_port = address[1],
-                latitude = latitude,
-                longitude = longitude,
-                container = self.container['container'],
-                protocol = tables.TCP)
-        else:
-            self.connection = tables.Connections(
-                source_address = address[0],
-                source_port = address[1],
-                latitude = latitude,
-                longitude = longitude,
-                container = self.container['container'],
-                proto = tables.TCP)
-
-        self.database.write(self.connection)
 
     def _listen_to_queries(self):
         listen_socket = self._create_socket()
@@ -102,7 +70,7 @@ class UDPThread(threading.Thread):
                     logger.info('udp_thread shutting down')
                     break
                 continue
-            except Exception as exc:
+            except Exception as exc: # pragma: no cover
                 logger.debug(exc)
             
         chain.delete_container_rules(self)
@@ -112,7 +80,7 @@ class UDPThread(threading.Thread):
         try:
             reply = query.udp(message, self.container_ip, port=self.container_port)
             logger.debug(reply)
-        except Exception as exc:
+        except Exception as exc: # pragma: no cover
             logger.debug(exc)
         return reply
 
@@ -121,20 +89,20 @@ class UDPThread(threading.Thread):
             logger.debug('sending reply to: %s via %s', origin, str(sock))
             r = query.send_udp(sock, reply, origin)
             logger.debug('%s bytes sent to %s', str(r[0]) , origin)
-        except Exception as exc:
+        except Exception as exc: # pragma: no cover
             logger.debug(exc) 
 
     def run(self):
         chain.create_listen_rules(self)
         try:
             client = docker.from_env()
-            self.bindd = client.containers.run(self.container['container'], 
+            self.bindd = client.containers.run(self.container['container'], Name = 'BIND9',
                             restart_policy={"Name":"always"}, read_only=True, detach=True)
-            logger.info('Started: %s', self.bindd)
+            logger.info('BINDD container started: %s', self.bindd)
             self.bindd.reload()
             self._fetch_container_attributes()
             self._listen_to_queries()
-        except Exception as err:
+        except Exception as err: # pragma: no cover
             logger.info(err)
 
         self._stop_and_remove()
