@@ -47,7 +47,7 @@ The dynamic firewall rules require some initial setup on your host machine.
     ```
     Port 22
     ```
-    and change it to the number you specified in chain.py.
+    and change it to the number you specified in firewall.yml.
     
     Then, restart the ssh daemon with:
     ```
